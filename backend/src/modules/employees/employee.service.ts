@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt'
 
 import { prisma } from '../../config/database.js'
 import { AppError } from '../../errors/app-error.js'
+import { EmployeeStatus } from '../../generated/prisma/enums.js'
 import type { CreateEmployeeInput, UpdateEmployeeInput } from './employee.schema.js'
 import { employeeListSelect } from './employee.types.js'
 
@@ -136,5 +137,32 @@ export const updateEmployee = async (id: string, input: UpdateEmployeeInput) => 
     where: { id },
     data: input,
     select: employeeListSelect,
+  })
+}
+
+export const deleteEmployee = async (id: string) => {
+  const employee = await prisma.employee.findFirst({
+    where: { id, isDeleted: false },
+    select: { id: true },
+  })
+
+  if (!employee) {
+    throw new AppError(404, 'EMPLOYEE_NOT_FOUND', 'Employee not found')
+  }
+
+  return prisma.employee.update({
+    where: { id },
+    data: {
+      isDeleted: true,
+      deletedAt: new Date(),
+      status: EmployeeStatus.INACTIVE,
+      tokenVersion: { increment: 1 },
+    },
+    select: {
+      id: true,
+      employeeId: true,
+      name: true,
+      deletedAt: true,
+    },
   })
 }

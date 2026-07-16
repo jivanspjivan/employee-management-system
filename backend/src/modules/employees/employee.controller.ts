@@ -96,3 +96,22 @@ export const updateEmployee: RequestHandler = async (request, response) => {
     data: { employee },
   })
 }
+
+export const deleteEmployee: RequestHandler = async (request, response) => {
+  const { id } = employeeIdParamSchema.parse(request.params)
+
+  if (!request.employee) {
+    throw new AppError(401, 'AUTHENTICATION_REQUIRED', 'Authentication is required')
+  }
+
+  if (request.employee.id === id) {
+    throw new AppError(400, 'CANNOT_DELETE_SELF', 'You cannot delete your own account')
+  }
+
+  const employee = await employeeService.deleteEmployee(id)
+
+  response.status(200).json({
+    message: 'Employee deleted successfully',
+    data: { employee },
+  })
+}

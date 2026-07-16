@@ -131,3 +131,14 @@ Only the fields that need to change are required in the request body.
   "salary": 90000
 }
 ```
+
+### Delete an employee
+
+Super Admin only. This is a soft delete: the row remains in the database, the
+employee becomes inactive, and their existing authentication tokens are
+invalidated. A Super Admin cannot delete their own account.
+
+```http
+DELETE /employees/:id
+Authorization: Bearer {{token}}
+```

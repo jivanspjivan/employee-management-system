@@ -330,3 +330,74 @@ describe('update employee API', () => {
     expect(databaseMock.update).not.toHaveBeenCalled()
   })
 })
+
+describe('delete employee API', () => {
+  const employeeToDeleteId = '6bdd0aa2-a313-457f-82f5-f5c568a8fa4c'
+
+  beforeEach(() => {
+    databaseMock.findFirst.mockReset()
+    databaseMock.findUnique.mockReset()
+    databaseMock.update.mockReset()
+    authenticatedEmployee.role = EmployeeRole.SUPER_ADMIN
+    databaseMock.findUnique.mockImplementation(async () => ({ ...authenticatedEmployee }))
+    databaseMock.findFirst.mockResolvedValue({ id: employeeToDeleteId })
+    databaseMock.update.mockResolvedValue({
+      id: employeeToDeleteId,
+      employeeId: 'EMP-002',
+      name: 'Asha Sharma',
+      deletedAt: new Date('2026-07-18'),
+    })
+  })
+
+  it('allows a Super Admin to soft-delete an employee', async () => {
+    const response = await request(createApp())
+      .delete(`/api/employees/${employeeToDeleteId}`)
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.SUPER_ADMIN)}`)
+
+    expect(response.status).toBe(200)
+    expect(response.body.message).toBe('Employee deleted successfully')
+    expect(databaseMock.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: employeeToDeleteId },
+        data: expect.objectContaining({
+          isDeleted: true,
+          status: 'INACTIVE',
+          tokenVersion: { increment: 1 },
+        }),
+      }),
+    )
+  })
+
+  it('prevents an HR Manager from deleting an employee', async () => {
+    authenticatedEmployee.role = EmployeeRole.HR_MANAGER
+
+    const response = await request(createApp())
+      .delete(`/api/employees/${employeeToDeleteId}`)
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.HR_MANAGER)}`)
+
+    expect(response.status).toBe(403)
+    expect(response.body.error.code).toBe('INSUFFICIENT_PERMISSIONS')
+    expect(databaseMock.update).not.toHaveBeenCalled()
+  })
+
+  it('prevents a Super Admin from deleting their own account', async () => {
+    const response = await request(createApp())
+      .delete(`/api/employees/${authenticatedEmployee.id}`)
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.SUPER_ADMIN)}`)
+
+    expect(response.status).toBe(400)
+    expect(response.body.error.code).toBe('CANNOT_DELETE_SELF')
+    expect(databaseMock.update).not.toHaveBeenCalled()
+  })
+
+  it('returns 404 when the employee is already deleted or missing', async () => {
+    databaseMock.findFirst.mockResolvedValue(null)
+
+    const response = await request(createApp())
+      .delete(`/api/employees/${employeeToDeleteId}`)
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.SUPER_ADMIN)}`)
+
+    expect(response.status).toBe(404)
+    expect(response.body.error.code).toBe('EMPLOYEE_NOT_FOUND')
+  })
+})

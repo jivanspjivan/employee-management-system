@@ -60,3 +60,17 @@ again after a successful logout.
 ```http
 GET /health
 ```
+
+## Employees
+
+### List employees
+
+Super Admin and HR Manager only.
+
+```http
+GET /employees
+Authorization: Bearer {{token}}
+```
+
+The response contains non-deleted employees ordered by name. Password hashes,
+token versions, and soft-deletion metadata are not returned.

@@ -6,6 +6,7 @@ import { AppError } from './errors/app-error.js'
 import { errorHandler } from './middleware/error-handler.js'
 import { requestLogger } from './middleware/request-logger.js'
 import { authRouter } from './modules/auth/auth.routes.js'
+import { employeeRouter } from './modules/employees/employee.routes.js'
 
 export const createApp = () => {
   const app = express()
@@ -29,6 +30,7 @@ export const createApp = () => {
   })
 
   app.use('/api/auth', authRouter)
+  app.use('/api/employees', employeeRouter)
 
   app.use((_request, _response, next) => {
     next(new AppError(404, 'ROUTE_NOT_FOUND', 'Route not found'))

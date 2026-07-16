@@ -22,3 +22,4 @@ employeeRouter.get(
 )
 
 employeeRouter.get('/:id', authenticate, employeeController.getEmployeeById)
+employeeRouter.put('/:id', authenticate, employeeController.updateEmployee)

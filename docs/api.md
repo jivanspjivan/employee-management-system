@@ -110,3 +110,24 @@ Content-Type: application/json
   "role": "EMPLOYEE"
 }
 ```
+
+### Update an employee
+
+Super Admin and HR Manager can update employee fields. HR Managers cannot
+assign the Super Admin role. Employees can update only their own name, phone,
+and profile image URL.
+
+```http
+PUT /employees/:id
+Authorization: Bearer {{token}}
+Content-Type: application/json
+```
+
+Only the fields that need to change are required in the request body.
+
+```json
+{
+  "designation": "Senior Software Engineer",
+  "salary": 90000
+}
+```

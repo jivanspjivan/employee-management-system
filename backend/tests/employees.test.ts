@@ -7,6 +7,7 @@ const databaseMock = vi.hoisted(() => ({
   findFirst: vi.fn(),
   findMany: vi.fn(),
   findUnique: vi.fn(),
+  update: vi.fn(),
 }))
 
 vi.mock('../src/config/database.js', () => ({
@@ -19,6 +20,7 @@ vi.mock('../src/config/database.js', () => ({
       findFirst: databaseMock.findFirst,
       findMany: databaseMock.findMany,
       findUnique: databaseMock.findUnique,
+      update: databaseMock.update,
     },
   },
 }))
@@ -251,5 +253,80 @@ describe('create employee API', () => {
     expect(response.status).toBe(400)
     expect(response.body.error.code).toBe('VALIDATION_ERROR')
     expect(databaseMock.create).not.toHaveBeenCalled()
+  })
+})
+
+describe('update employee API', () => {
+  beforeEach(() => {
+    databaseMock.findFirst.mockReset()
+    databaseMock.findUnique.mockReset()
+    databaseMock.update.mockReset()
+    authenticatedEmployee.role = EmployeeRole.SUPER_ADMIN
+    databaseMock.findUnique.mockImplementation(async () => ({ ...authenticatedEmployee }))
+    databaseMock.findFirst.mockResolvedValue({ id: authenticatedEmployee.id })
+    databaseMock.update.mockResolvedValue({
+      ...listedEmployee,
+      designation: 'Senior Software Engineer',
+    })
+  })
+
+  it('allows a Super Admin to update an employee', async () => {
+    const response = await request(createApp())
+      .put(`/api/employees/${authenticatedEmployee.id}`)
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.SUPER_ADMIN)}`)
+      .send({ designation: 'Senior Software Engineer', salary: 90000 })
+
+    expect(response.status).toBe(200)
+    expect(response.body.data.employee.designation).toBe('Senior Software Engineer')
+    expect(databaseMock.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: authenticatedEmployee.id },
+        data: { designation: 'Senior Software Engineer', salary: 90000 },
+      }),
+    )
+  })
+
+  it('allows an Employee to update their own limited profile fields', async () => {
+    authenticatedEmployee.role = EmployeeRole.EMPLOYEE
+    databaseMock.update.mockResolvedValue({
+      ...listedEmployee,
+      name: 'Updated Employee Name',
+    })
+
+    const response = await request(createApp())
+      .put(`/api/employees/${authenticatedEmployee.id}`)
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.EMPLOYEE)}`)
+      .send({ name: 'Updated Employee Name' })
+
+    expect(response.status).toBe(200)
+    expect(databaseMock.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { name: 'Updated Employee Name' } }),
+    )
+  })
+
+  it('rejects restricted fields when an Employee updates their profile', async () => {
+    authenticatedEmployee.role = EmployeeRole.EMPLOYEE
+
+    const response = await request(createApp())
+      .put(`/api/employees/${authenticatedEmployee.id}`)
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.EMPLOYEE)}`)
+      .send({ salary: 100000 })
+
+    expect(response.status).toBe(400)
+    expect(response.body.error.code).toBe('VALIDATION_ERROR')
+    expect(databaseMock.update).not.toHaveBeenCalled()
+  })
+
+  it('prevents an HR Manager from assigning the Super Admin role', async () => {
+    authenticatedEmployee.role = EmployeeRole.HR_MANAGER
+
+    const response = await request(createApp())
+      .put(`/api/employees/${authenticatedEmployee.id}`)
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.HR_MANAGER)}`)
+      .send({ role: EmployeeRole.SUPER_ADMIN })
+
+    expect(response.status).toBe(403)
+    expect(response.body.error.code).toBe('INSUFFICIENT_PERMISSIONS')
+    expect(databaseMock.update).not.toHaveBeenCalled()
   })
 })

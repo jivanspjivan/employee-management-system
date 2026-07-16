@@ -125,6 +125,34 @@ frontend/.env.example
 
 Never commit real secrets or local `.env` files.
 
+### Neon database setup
+
+Create a Neon PostgreSQL project and copy its pooled and direct connection
+strings into `backend/.env`:
+
+```text
+DATABASE_URL=<pooled Neon connection string>
+DIRECT_URL=<direct Neon connection string>
+```
+
+The application uses the pooled URL at runtime. Prisma schema and migration
+commands use the direct URL.
+
+Create and seed the database after setting all `SEED_SUPER_ADMIN_*` variables:
+
+```bash
+cd backend
+npm run db:validate
+npm run db:deploy
+npm run db:seed
+```
+
+When the schema changes during development, create the next migration with:
+
+```bash
+npm run db:migrate -- --name describe_your_change
+```
+
 ## Development roadmap
 
 1. Scaffold the frontend and backend applications.

@@ -1,0 +1,64 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+enum EmployeeRole {
+  SUPER_ADMIN
+  HR_MANAGER
+  EMPLOYEE
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model Department {
+  id        String     @id @default(uuid()) @db.Uuid
+  name      String     @unique @db.VarChar(100)
+  employees Employee[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@map("departments")
+}
+
+model Employee {
+  id                 String         @id @default(uuid()) @db.Uuid
+  employeeId         String         @unique @db.VarChar(30)
+  name               String         @db.VarChar(120)
+  email              String         @unique @db.VarChar(255)
+  passwordHash       String         @db.VarChar(255)
+  phone              String?        @db.VarChar(20)
+  designation        String         @db.VarChar(120)
+  salary             Decimal        @db.Decimal(12, 2)
+  joiningDate        DateTime       @db.Date
+  status             EmployeeStatus @default(ACTIVE)
+  role               EmployeeRole   @default(EMPLOYEE)
+  profileImageUrl    String?        @db.VarChar(500)
+  departmentId       String         @db.Uuid
+  reportingManagerId String?        @db.Uuid
+  isDeleted          Boolean        @default(false)
+  deletedAt          DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  department       Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  reportingManager Employee?  @relation("ReportingHierarchy", fields: [reportingManagerId], references: [id], onDelete: SetNull)
+  directReports    Employee[] @relation("ReportingHierarchy")
+
+  @@index([departmentId])
+  @@index([reportingManagerId])
+  @@index([role])
+  @@index([status])
+  @@index([isDeleted])
+  @@index([name])
+  @@map("employees")
+}

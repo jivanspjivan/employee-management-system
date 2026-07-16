@@ -29,6 +29,7 @@ pnpm-debug.log*
 .eslintcache
 .cache/
 .vite/
+backend/src/generated/prisma/
 
 # Test and browser artifacts
 test-results/

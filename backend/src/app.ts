@@ -4,6 +4,7 @@ import helmet from 'helmet'
 
 import { AppError } from './errors/app-error.js'
 import { errorHandler } from './middleware/error-handler.js'
+import { requestLogger } from './middleware/request-logger.js'
 import { authRouter } from './modules/auth/auth.routes.js'
 
 export const createApp = () => {
@@ -11,6 +12,7 @@ export const createApp = () => {
 
   app.disable('x-powered-by')
   app.use(helmet())
+  app.use(requestLogger)
   app.use(
     cors({
       credentials: true,

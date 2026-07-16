@@ -1,15 +1,26 @@
 import type { ErrorRequestHandler } from 'express'
 import { ZodError } from 'zod'
 
+import { logger } from '../config/logger.js'
 import { AppError } from '../errors/app-error.js'
 
 export const errorHandler: ErrorRequestHandler = (
   error: unknown,
-  _request,
+  request,
   response,
   _next,
 ) => {
   if (error instanceof AppError) {
+    const log = error.statusCode >= 500 ? logger.error.bind(logger) : logger.warn.bind(logger)
+    log('API request failed', {
+      requestId: request.requestId,
+      method: request.method,
+      path: request.path,
+      statusCode: error.statusCode,
+      errorCode: error.code,
+      ...(error.statusCode >= 500 ? { stack: error.stack } : {}),
+    })
+
     response.status(error.statusCode).json({
       error: {
         code: error.code,
@@ -21,6 +32,13 @@ export const errorHandler: ErrorRequestHandler = (
   }
 
   if (error instanceof ZodError) {
+    logger.warn('Request validation failed', {
+      requestId: request.requestId,
+      method: request.method,
+      path: request.path,
+      fields: error.issues.map((issue) => issue.path.join('.')),
+    })
+
     response.status(400).json({
       error: {
         code: 'VALIDATION_ERROR',
@@ -34,7 +52,15 @@ export const errorHandler: ErrorRequestHandler = (
     return
   }
 
-  console.error(error)
+  logger.error('Unhandled API error', {
+    requestId: request.requestId,
+    method: request.method,
+    path: request.path,
+    error:
+      error instanceof Error
+        ? { message: error.message, name: error.name, stack: error.stack }
+        : { message: 'Unknown error type' },
+  })
   response.status(500).json({
     error: {
       code: 'INTERNAL_SERVER_ERROR',

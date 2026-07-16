@@ -4,6 +4,7 @@ import bcrypt from 'bcrypt'
 import { z } from 'zod'
 
 import { prisma } from '../src/config/database.js'
+import { logger } from '../src/config/logger.js'
 import { EmployeeRole, EmployeeStatus } from '../src/generated/prisma/enums.js'
 
 const requiredEnvironmentVariable = (name: string) => {
@@ -63,12 +64,17 @@ const seed = async () => {
     },
   })
 
-  console.log(`Super Admin ready: ${email}`)
+  logger.info('Super Admin seed completed')
 }
 
 seed()
   .catch((error: unknown) => {
-    console.error('Database seed failed', error)
+    logger.error('Database seed failed', {
+      error:
+        error instanceof Error
+          ? { message: error.message, name: error.name, stack: error.stack }
+          : { message: 'Unknown error type' },
+    })
     process.exitCode = 1
   })
   .finally(async () => {

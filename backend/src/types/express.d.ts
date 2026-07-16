@@ -5,6 +5,7 @@ declare global {
     interface Request {
       authTokenVersion?: number
       employee?: AuthenticatedEmployee
+      requestId?: string
     }
   }
 }

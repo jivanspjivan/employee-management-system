@@ -119,6 +119,11 @@ The default local addresses are:
 API request examples and Postman instructions are available in
 [`docs/api.md`](docs/api.md).
 
+Backend logs are emitted through Winston. Development uses readable colored
+logs, production uses structured JSON, and `LOG_LEVEL` controls verbosity.
+HTTP logs include request IDs, status codes, and response duration without
+recording request bodies, credentials, or authorization headers.
+
 Environment templates:
 
 ```text

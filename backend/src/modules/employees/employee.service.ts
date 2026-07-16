@@ -118,21 +118,6 @@ export const updateEmployee = async (id: string, input: UpdateEmployeeInput) => 
     }
   }
 
-  if (input.reportingManagerId === id) {
-    throw new AppError(400, 'INVALID_REPORTING_MANAGER', 'An employee cannot report to themselves')
-  }
-
-  if (input.reportingManagerId) {
-    const manager = await prisma.employee.findFirst({
-      where: { id: input.reportingManagerId, isDeleted: false },
-      select: { id: true },
-    })
-
-    if (!manager) {
-      throw new AppError(400, 'REPORTING_MANAGER_NOT_FOUND', 'Reporting manager does not exist')
-    }
-  }
-
   return prisma.employee.update({
     where: { id },
     data: input,
@@ -164,5 +149,56 @@ export const deleteEmployee = async (id: string) => {
       name: true,
       deletedAt: true,
     },
+  })
+}
+
+export const assignManager = async (employeeId: string, reportingManagerId: string | null) => {
+  const employee = await prisma.employee.findFirst({
+    where: { id: employeeId, isDeleted: false },
+    select: { id: true },
+  })
+
+  if (!employee) {
+    throw new AppError(404, 'EMPLOYEE_NOT_FOUND', 'Employee not found')
+  }
+
+  if (reportingManagerId === employeeId) {
+    throw new AppError(400, 'CIRCULAR_REPORTING', 'An employee cannot report to themselves')
+  }
+
+  if (reportingManagerId) {
+    let manager = await prisma.employee.findFirst({
+      where: { id: reportingManagerId, isDeleted: false },
+      select: { id: true, reportingManagerId: true },
+    })
+
+    if (!manager) {
+      throw new AppError(400, 'REPORTING_MANAGER_NOT_FOUND', 'Reporting manager does not exist')
+    }
+
+    const visitedEmployeeIds = new Set<string>()
+
+    while (manager) {
+      if (manager.id === employeeId || visitedEmployeeIds.has(manager.id)) {
+        throw new AppError(400, 'CIRCULAR_REPORTING', 'This manager assignment creates a cycle')
+      }
+
+      visitedEmployeeIds.add(manager.id)
+
+      if (!manager.reportingManagerId) {
+        break
+      }
+
+      manager = await prisma.employee.findFirst({
+        where: { id: manager.reportingManagerId, isDeleted: false },
+        select: { id: true, reportingManagerId: true },
+      })
+    }
+  }
+
+  return prisma.employee.update({
+    where: { id: employeeId },
+    data: { reportingManagerId },
+    select: employeeListSelect,
   })
 }

@@ -23,6 +23,12 @@ employeeRouter.get(
 
 employeeRouter.get('/:id', authenticate, employeeController.getEmployeeById)
 employeeRouter.put('/:id', authenticate, employeeController.updateEmployee)
+employeeRouter.patch(
+  '/:id/manager',
+  authenticate,
+  authorize(EmployeeRole.SUPER_ADMIN, EmployeeRole.HR_MANAGER),
+  employeeController.assignManager,
+)
 employeeRouter.delete(
   '/:id',
   authenticate,

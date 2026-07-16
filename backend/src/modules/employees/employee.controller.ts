@@ -3,6 +3,7 @@ import type { RequestHandler } from 'express'
 import { AppError } from '../../errors/app-error.js'
 import { EmployeeRole } from '../../generated/prisma/enums.js'
 import {
+  assignManagerSchema,
   createEmployeeSchema,
   employeeIdParamSchema,
   updateEmployeeSchema,
@@ -112,6 +113,17 @@ export const deleteEmployee: RequestHandler = async (request, response) => {
 
   response.status(200).json({
     message: 'Employee deleted successfully',
+    data: { employee },
+  })
+}
+
+export const assignManager: RequestHandler = async (request, response) => {
+  const { id } = employeeIdParamSchema.parse(request.params)
+  const { reportingManagerId } = assignManagerSchema.parse(request.body)
+  const employee = await employeeService.assignManager(id, reportingManagerId)
+
+  response.status(200).json({
+    message: reportingManagerId ? 'Reporting manager assigned successfully' : 'Reporting manager removed',
     data: { employee },
   })
 }

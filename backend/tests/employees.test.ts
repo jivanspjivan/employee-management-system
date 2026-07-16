@@ -2,6 +2,7 @@ import request from 'supertest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const databaseMock = vi.hoisted(() => ({
+  findFirst: vi.fn(),
   findMany: vi.fn(),
   findUnique: vi.fn(),
 }))
@@ -9,6 +10,7 @@ const databaseMock = vi.hoisted(() => ({
 vi.mock('../src/config/database.js', () => ({
   prisma: {
     employee: {
+      findFirst: databaseMock.findFirst,
       findMany: databaseMock.findMany,
       findUnique: databaseMock.findUnique,
     },
@@ -61,11 +63,13 @@ const createToken = (role: EmployeeRole) =>
 
 describe('employee list API', () => {
   beforeEach(() => {
+    databaseMock.findFirst.mockReset()
     databaseMock.findMany.mockReset()
     databaseMock.findUnique.mockReset()
     authenticatedEmployee.role = EmployeeRole.SUPER_ADMIN
     databaseMock.findUnique.mockImplementation(async () => ({ ...authenticatedEmployee }))
     databaseMock.findMany.mockResolvedValue([listedEmployee])
+    databaseMock.findFirst.mockResolvedValue(listedEmployee)
   })
 
   it('allows a Super Admin to list non-deleted employees', async () => {
@@ -100,5 +104,62 @@ describe('employee list API', () => {
     expect(response.status).toBe(401)
     expect(response.body.error.code).toBe('AUTHENTICATION_REQUIRED')
     expect(databaseMock.findMany).not.toHaveBeenCalled()
+  })
+})
+
+describe('employee detail API', () => {
+  beforeEach(() => {
+    databaseMock.findFirst.mockReset()
+    databaseMock.findUnique.mockReset()
+    authenticatedEmployee.role = EmployeeRole.SUPER_ADMIN
+    databaseMock.findUnique.mockImplementation(async () => ({ ...authenticatedEmployee }))
+    databaseMock.findFirst.mockResolvedValue(listedEmployee)
+  })
+
+  it('allows a Super Admin to view an employee', async () => {
+    const response = await request(createApp())
+      .get(`/api/employees/${authenticatedEmployee.id}`)
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.SUPER_ADMIN)}`)
+
+    expect(response.status).toBe(200)
+    expect(response.body.data.employee.employeeId).toBe('ADMIN-001')
+    expect(databaseMock.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: authenticatedEmployee.id, isDeleted: false },
+      }),
+    )
+  })
+
+  it('allows an Employee to view their own profile', async () => {
+    authenticatedEmployee.role = EmployeeRole.EMPLOYEE
+
+    const response = await request(createApp())
+      .get(`/api/employees/${authenticatedEmployee.id}`)
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.EMPLOYEE)}`)
+
+    expect(response.status).toBe(200)
+  })
+
+  it('prevents an Employee from viewing another employee', async () => {
+    authenticatedEmployee.role = EmployeeRole.EMPLOYEE
+
+    const response = await request(createApp())
+      .get('/api/employees/6bdd0aa2-a313-457f-82f5-f5c568a8fa4c')
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.EMPLOYEE)}`)
+
+    expect(response.status).toBe(403)
+    expect(response.body.error.code).toBe('INSUFFICIENT_PERMISSIONS')
+    expect(databaseMock.findFirst).not.toHaveBeenCalled()
+  })
+
+  it('returns 404 when the employee does not exist', async () => {
+    databaseMock.findFirst.mockResolvedValue(null)
+
+    const response = await request(createApp())
+      .get('/api/employees/6bdd0aa2-a313-457f-82f5-f5c568a8fa4c')
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.SUPER_ADMIN)}`)
+
+    expect(response.status).toBe(404)
+    expect(response.body.error.code).toBe('EMPLOYEE_NOT_FOUND')
   })
 })

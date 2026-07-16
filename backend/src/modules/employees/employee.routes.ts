@@ -13,3 +13,5 @@ employeeRouter.get(
   authorize(EmployeeRole.SUPER_ADMIN, EmployeeRole.HR_MANAGER),
   employeeController.listEmployees,
 )
+
+employeeRouter.get('/:id', authenticate, employeeController.getEmployeeById)

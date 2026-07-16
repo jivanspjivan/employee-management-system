@@ -74,3 +74,13 @@ Authorization: Bearer {{token}}
 
 The response contains non-deleted employees ordered by name. Password hashes,
 token versions, and soft-deletion metadata are not returned.
+
+### Get an employee
+
+Super Admin and HR Manager can view any employee. Employees can only view their
+own record.
+
+```http
+GET /employees/:id
+Authorization: Bearer {{token}}
+```

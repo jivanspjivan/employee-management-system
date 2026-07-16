@@ -1,6 +1,7 @@
 import 'dotenv/config'
 
 import bcrypt from 'bcrypt'
+import { z } from 'zod'
 
 import { prisma } from '../src/config/database.js'
 import { EmployeeRole, EmployeeStatus } from '../src/generated/prisma/enums.js'
@@ -16,7 +17,9 @@ const requiredEnvironmentVariable = (name: string) => {
 }
 
 const seed = async () => {
-  const email = requiredEnvironmentVariable('SEED_SUPER_ADMIN_EMAIL').toLowerCase()
+  const email = z
+    .email('SEED_SUPER_ADMIN_EMAIL must be a valid email address')
+    .parse(requiredEnvironmentVariable('SEED_SUPER_ADMIN_EMAIL').toLowerCase())
   const password = requiredEnvironmentVariable('SEED_SUPER_ADMIN_PASSWORD')
   const name = requiredEnvironmentVariable('SEED_SUPER_ADMIN_NAME')
   const employeeId = requiredEnvironmentVariable('SEED_SUPER_ADMIN_EMPLOYEE_ID')
@@ -34,9 +37,9 @@ const seed = async () => {
   const passwordHash = await bcrypt.hash(password, 12)
 
   await prisma.employee.upsert({
-    where: { email },
+    where: { employeeId },
     update: {
-      employeeId,
+      email,
       name,
       passwordHash,
       departmentId: department.id,

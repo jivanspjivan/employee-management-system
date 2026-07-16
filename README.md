@@ -116,6 +116,9 @@ The default local addresses are:
 - Frontend: `http://localhost:5173`
 - Backend health endpoint: `http://localhost:4000/api/health`
 
+API request examples and Postman instructions are available in
+[`docs/api.md`](docs/api.md).
+
 Environment templates:
 
 ```text

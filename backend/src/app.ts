@@ -1,6 +1,10 @@
 import cors from 'cors'
-import express, { type NextFunction, type Request, type Response } from 'express'
+import express from 'express'
 import helmet from 'helmet'
+
+import { AppError } from './errors/app-error.js'
+import { errorHandler } from './middleware/error-handler.js'
+import { authRouter } from './modules/auth/auth.routes.js'
 
 export const createApp = () => {
   const app = express()
@@ -22,21 +26,13 @@ export const createApp = () => {
     })
   })
 
-  app.use((_request, response) => {
-    response.status(404).json({ message: 'Route not found' })
+  app.use('/api/auth', authRouter)
+
+  app.use((_request, _response, next) => {
+    next(new AppError(404, 'ROUTE_NOT_FOUND', 'Route not found'))
   })
 
-  app.use(
-    (
-      error: unknown,
-      _request: Request,
-      response: Response,
-      _next: NextFunction,
-    ) => {
-      console.error(error)
-      response.status(500).json({ message: 'Internal server error' })
-    },
-  )
+  app.use(errorHandler)
 
   return app
 }

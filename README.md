@@ -6,7 +6,7 @@ responsive dashboard.
 
 ## Planned technology stack
 
-- **Frontend:** React, Vite, TypeScript, and Tailwind CSS
+- **Frontend:** React, Vite, TypeScript, and Material UI
 - **Backend:** Node.js, Express.js, and TypeScript
 - **Database:** PostgreSQL with Prisma ORM
 - **Authentication:** JWT and bcrypt
@@ -91,11 +91,32 @@ git push -u origin feature/auth-rbac
 
 ## Local development
 
-The frontend and backend applications have not been scaffolded yet. Setup and
-run commands will be added here after their dependencies and environment
-variables are configured.
+Requirements: Node.js 22 or later and npm.
 
-Planned environment templates:
+Install dependencies:
+
+```bash
+cd backend && npm install
+cd ../frontend && npm install
+```
+
+Copy the environment templates and start both applications in separate
+terminals:
+
+```bash
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+
+cd backend && npm run dev
+cd frontend && npm run dev
+```
+
+The default local addresses are:
+
+- Frontend: `http://localhost:5173`
+- Backend health endpoint: `http://localhost:4000/api/health`
+
+Environment templates:
 
 ```text
 backend/.env.example
@@ -116,4 +137,4 @@ Never commit real secrets or local `.env` files.
 
 ## Status
 
-Initial repository structure created. Application implementation is pending.
+React and Express foundations are in place. Feature implementation is pending.

@@ -84,3 +84,29 @@ own record.
 GET /employees/:id
 Authorization: Bearer {{token}}
 ```
+
+### Create an employee
+
+Super Admin and HR Manager can create employees. HR Managers cannot assign the
+Super Admin role. The password is hashed before storage.
+
+```http
+POST /employees
+Authorization: Bearer {{token}}
+Content-Type: application/json
+```
+
+```json
+{
+  "employeeId": "EMP-002",
+  "name": "Asha Sharma",
+  "email": "asha@example.com",
+  "password": "temporary-password",
+  "phone": "+91 9876543210",
+  "departmentId": "d4266f98-1abc-49e6-9659-e0bd86e1fa7f",
+  "designation": "Software Engineer",
+  "salary": 75000,
+  "joiningDate": "2026-07-18",
+  "role": "EMPLOYEE"
+}
+```

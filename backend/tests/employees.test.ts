@@ -2,6 +2,8 @@ import request from 'supertest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const databaseMock = vi.hoisted(() => ({
+  create: vi.fn(),
+  departmentFindUnique: vi.fn(),
   findFirst: vi.fn(),
   findMany: vi.fn(),
   findUnique: vi.fn(),
@@ -9,11 +11,21 @@ const databaseMock = vi.hoisted(() => ({
 
 vi.mock('../src/config/database.js', () => ({
   prisma: {
+    department: {
+      findUnique: databaseMock.departmentFindUnique,
+    },
     employee: {
+      create: databaseMock.create,
       findFirst: databaseMock.findFirst,
       findMany: databaseMock.findMany,
       findUnique: databaseMock.findUnique,
     },
+  },
+}))
+
+vi.mock('bcrypt', () => ({
+  default: {
+    hash: vi.fn(async () => 'new-password-hash'),
   },
 }))
 
@@ -161,5 +173,83 @@ describe('employee detail API', () => {
 
     expect(response.status).toBe(404)
     expect(response.body.error.code).toBe('EMPLOYEE_NOT_FOUND')
+  })
+})
+
+describe('create employee API', () => {
+  const input = {
+    employeeId: 'EMP-002',
+    name: 'Asha Sharma',
+    email: 'ASHA@EXAMPLE.COM',
+    password: 'temporary-password',
+    phone: '+91 9876543210',
+    departmentId: 'd4266f98-1abc-49e6-9659-e0bd86e1fa7f',
+    designation: 'Software Engineer',
+    salary: 75000,
+    joiningDate: '2026-07-18',
+    role: EmployeeRole.EMPLOYEE,
+  }
+
+  beforeEach(() => {
+    databaseMock.create.mockReset()
+    databaseMock.departmentFindUnique.mockReset()
+    databaseMock.findFirst.mockReset()
+    databaseMock.findUnique.mockReset()
+    authenticatedEmployee.role = EmployeeRole.SUPER_ADMIN
+    databaseMock.findUnique.mockImplementation(async () => ({ ...authenticatedEmployee }))
+    databaseMock.findFirst.mockResolvedValue(null)
+    databaseMock.departmentFindUnique.mockResolvedValue({ id: input.departmentId })
+    databaseMock.create.mockResolvedValue({
+      ...listedEmployee,
+      employeeId: input.employeeId,
+      name: input.name,
+      email: input.email.toLowerCase(),
+    })
+  })
+
+  it('allows a Super Admin to create an employee', async () => {
+    const response = await request(createApp())
+      .post('/api/employees')
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.SUPER_ADMIN)}`)
+      .send(input)
+
+    expect(response.status).toBe(201)
+    expect(response.body.data.employee).toMatchObject({
+      employeeId: 'EMP-002',
+      email: 'asha@example.com',
+    })
+    expect(databaseMock.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          email: 'asha@example.com',
+          passwordHash: 'new-password-hash',
+        }),
+      }),
+    )
+    expect(databaseMock.create.mock.calls[0][0].data).not.toHaveProperty('password')
+  })
+
+  it('prevents an HR Manager from assigning the Super Admin role', async () => {
+    authenticatedEmployee.role = EmployeeRole.HR_MANAGER
+
+    const response = await request(createApp())
+      .post('/api/employees')
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.HR_MANAGER)}`)
+      .send({ ...input, role: EmployeeRole.SUPER_ADMIN })
+
+    expect(response.status).toBe(403)
+    expect(response.body.error.code).toBe('INSUFFICIENT_PERMISSIONS')
+    expect(databaseMock.create).not.toHaveBeenCalled()
+  })
+
+  it('rejects invalid employee data', async () => {
+    const response = await request(createApp())
+      .post('/api/employees')
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.SUPER_ADMIN)}`)
+      .send({ ...input, email: 'invalid-email', salary: -1 })
+
+    expect(response.status).toBe(400)
+    expect(response.body.error.code).toBe('VALIDATION_ERROR')
+    expect(databaseMock.create).not.toHaveBeenCalled()
   })
 })

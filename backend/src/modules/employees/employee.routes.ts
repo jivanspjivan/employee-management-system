@@ -7,6 +7,13 @@ import * as employeeController from './employee.controller.js'
 
 export const employeeRouter = Router()
 
+employeeRouter.post(
+  '/',
+  authenticate,
+  authorize(EmployeeRole.SUPER_ADMIN, EmployeeRole.HR_MANAGER),
+  employeeController.createEmployee,
+)
+
 employeeRouter.get(
   '/',
   authenticate,

@@ -2,7 +2,7 @@ import type { RequestHandler } from 'express'
 
 import { AppError } from '../../errors/app-error.js'
 import { EmployeeRole } from '../../generated/prisma/enums.js'
-import { employeeIdParamSchema } from './employee.schema.js'
+import { createEmployeeSchema, employeeIdParamSchema } from './employee.schema.js'
 import * as employeeService from './employee.service.js'
 
 export const listEmployees: RequestHandler = async (_request, response) => {
@@ -29,4 +29,23 @@ export const getEmployeeById: RequestHandler = async (request, response) => {
   const employee = await employeeService.getEmployeeById(id)
 
   response.status(200).json({ data: { employee } })
+}
+
+export const createEmployee: RequestHandler = async (request, response) => {
+  const input = createEmployeeSchema.parse(request.body)
+
+  if (request.employee?.role === EmployeeRole.HR_MANAGER && input.role === EmployeeRole.SUPER_ADMIN) {
+    throw new AppError(
+      403,
+      'INSUFFICIENT_PERMISSIONS',
+      'HR Managers cannot assign the Super Admin role',
+    )
+  }
+
+  const employee = await employeeService.createEmployee(input)
+
+  response.status(201).json({
+    message: 'Employee created successfully',
+    data: { employee },
+  })
 }

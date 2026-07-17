@@ -55,6 +55,11 @@ export type PaginationMeta = {
   totalPages: number
 }
 
+export type EmployeeSearchResult = Pick<
+  AuthenticatedEmployee,
+  'id' | 'name' | 'email' | 'profileImageUrl'
+>
+
 export type ApiErrorPayload = {
   error: {
     code: string

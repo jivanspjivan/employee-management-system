@@ -60,7 +60,7 @@ export const AppShell = <Role extends string>({
       </Drawer>
 
       <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column', minWidth: 0 }}>
-        <AppHeader onOpenMenu={() => setMobileOpen(true)} title={title} user={user} />
+        <AppHeader onNavigate={onNavigate} onOpenMenu={() => setMobileOpen(true)} title={title} user={user} />
         <Box component="main" sx={{ flex: 1, p: { xs: 2, sm: 3, lg: 4 } }}>
           <Box
             key={activePath}

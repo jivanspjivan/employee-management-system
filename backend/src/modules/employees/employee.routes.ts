@@ -21,6 +21,13 @@ employeeRouter.get(
   employeeController.listEmployees,
 )
 
+employeeRouter.get(
+  '/search',
+  authenticate,
+  authorize(EmployeeRole.SUPER_ADMIN, EmployeeRole.HR_MANAGER),
+  employeeController.searchEmployees,
+)
+
 employeeRouter.get('/:id', authenticate, employeeController.getEmployeeById)
 employeeRouter.get('/:id/reportees', authenticate, employeeController.getDirectReportees)
 employeeRouter.put('/:id', authenticate, employeeController.updateEmployee)

@@ -7,6 +7,7 @@ import { EmployeeRole, EmployeeStatus } from '../../generated/prisma/enums.js'
 import type {
   CreateEmployeeInput,
   EmployeeListQuery,
+  EmployeeSearchQuery,
   UpdateEmployeeInput,
 } from './employee.schema.js'
 import { employeeListSelect } from './employee.types.js'
@@ -50,6 +51,31 @@ export const listEmployees = async (query: EmployeeListQuery) => {
       total,
       totalPages: Math.ceil(total / limit),
     },
+  }
+}
+
+export const searchEmployees = async ({ q, limit }: EmployeeSearchQuery) => {
+  const matches = await prisma.employee.findMany({
+    where: {
+      isDeleted: false,
+      OR: [
+        { name: { contains: q, mode: 'insensitive' } },
+        { email: { contains: q, mode: 'insensitive' } },
+      ],
+    },
+    orderBy: { name: 'asc' },
+    take: limit + 1,
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      profileImageUrl: true,
+    },
+  })
+
+  return {
+    employees: matches.slice(0, limit),
+    hasMore: matches.length > limit,
   }
 }
 

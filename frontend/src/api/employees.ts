@@ -1,5 +1,5 @@
 import { apiRequest } from './client'
-import type { EmployeeListItem, EmployeeRole, EmployeeStatus, PaginationMeta } from './types'
+import type { EmployeeListItem, EmployeeRole, EmployeeSearchResult, EmployeeStatus, PaginationMeta } from './types'
 
 export type EmployeeListResponse = {
   data: {
@@ -10,6 +10,7 @@ export type EmployeeListResponse = {
 
 export type EmployeeListFilters = {
   departmentId?: string
+  search?: string
   role?: EmployeeRole
   sortBy?: 'name' | 'joiningDate'
   sortOrder?: 'asc' | 'desc'
@@ -24,11 +25,20 @@ export const listEmployeesRequest = (
 ) => {
   const query = new URLSearchParams({ page: String(page), limit: String(limit) })
   if (filters.departmentId) query.set('departmentId', filters.departmentId)
+  if (filters.search) query.set('search', filters.search)
   if (filters.role) query.set('role', filters.role)
   if (filters.sortBy) query.set('sortBy', filters.sortBy)
   if (filters.sortOrder) query.set('sortOrder', filters.sortOrder)
   if (filters.status) query.set('status', filters.status)
   return apiRequest<EmployeeListResponse>(`/employees?${query.toString()}`, { signal })
+}
+
+export const searchEmployeesRequest = (search: string, limit = 4, signal?: AbortSignal) => {
+  const query = new URLSearchParams({ q: search, limit: String(limit) })
+  return apiRequest<{ data: { employees: EmployeeSearchResult[]; hasMore: boolean } }>(
+    `/employees/search?${query.toString()}`,
+    { signal },
+  )
 }
 
 export type CreateEmployeeInput = {

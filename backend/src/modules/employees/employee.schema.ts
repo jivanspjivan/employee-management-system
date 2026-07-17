@@ -33,6 +33,13 @@ export const employeeListQuerySchema = z
   })
   .strict()
 
+export const employeeSearchQuerySchema = z
+  .object({
+    q: z.string().trim().min(2).max(255),
+    limit: z.coerce.number().int().min(1).max(10).default(4),
+  })
+  .strict()
+
 const employeeFields = {
   employeeId: z.string().trim().min(2).max(30),
   name: z.string().trim().min(2).max(120),
@@ -87,4 +94,5 @@ export const assignManagerSchema = z
 
 export type CreateEmployeeInput = z.infer<typeof createEmployeeSchema>
 export type EmployeeListQuery = z.infer<typeof employeeListQuerySchema>
+export type EmployeeSearchQuery = z.infer<typeof employeeSearchQuerySchema>
 export type UpdateEmployeeInput = z.infer<typeof updateEmployeeSchema>

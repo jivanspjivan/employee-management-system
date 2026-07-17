@@ -11,6 +11,7 @@ import {
   createEmployeeSchema,
   employeeIdParamSchema,
   employeeListQuerySchema,
+  employeeSearchQuerySchema,
   updateEmployeeSchema,
 } from './employee.schema.js'
 import * as employeeService from './employee.service.js'
@@ -20,6 +21,13 @@ export const listEmployees: RequestHandler = async (request, response) => {
   const { employees, pagination } = await employeeService.listEmployees(query)
 
   response.status(200).json({ data: { employees, pagination } })
+}
+
+export const searchEmployees: RequestHandler = async (request, response) => {
+  const query = employeeSearchQuerySchema.parse(request.query)
+  const result = await employeeService.searchEmployees(query)
+
+  response.status(200).json({ data: result })
 }
 
 export const getEmployeeById: RequestHandler = async (request, response) => {

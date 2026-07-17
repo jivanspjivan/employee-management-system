@@ -159,6 +159,39 @@ describe('employee list API', () => {
     })
   })
 
+  it('returns four lightweight autocomplete matches without counting all results', async () => {
+    databaseMock.findMany.mockResolvedValue(
+      Array.from({ length: 5 }, (_, index) => ({
+        id: `a85ccf20-fd8a-4f08-a14d-0ad92d57b${10 + index}`,
+        name: `Mahesh ${index + 1}`,
+        email: `mahesh${index + 1}@example.com`,
+        profileImageUrl: null,
+      })),
+    )
+
+    const response = await request(createApp())
+      .get('/api/employees/search')
+      .query({ q: 'mahesh', limit: 4 })
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.SUPER_ADMIN)}`)
+
+    expect(response.status).toBe(200)
+    expect(response.body.data.employees).toHaveLength(4)
+    expect(response.body.data.hasMore).toBe(true)
+    expect(databaseMock.count).not.toHaveBeenCalled()
+    expect(databaseMock.findMany).toHaveBeenCalledWith({
+      where: {
+        isDeleted: false,
+        OR: [
+          { name: { contains: 'mahesh', mode: 'insensitive' } },
+          { email: { contains: 'mahesh', mode: 'insensitive' } },
+        ],
+      },
+      orderBy: { name: 'asc' },
+      take: 5,
+      select: { id: true, name: true, email: true, profileImageUrl: true },
+    })
+  })
+
   it('rejects invalid list query parameters', async () => {
     const response = await request(createApp())
       .get('/api/employees')

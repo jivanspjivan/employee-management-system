@@ -26,14 +26,6 @@ const LogoutIcon = () => (
   <SvgIcon sx={{ fontSize: 19 }}><path d="M10 17v-2H3V9h7V7l5 5-5 5Zm8-14H8a2 2 0 0 0-2 2v2h2V5h10v14H8v-2H6v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Z" /></SvgIcon>
 )
 
-const HelpIcon = () => (
-  <SvgIcon sx={{ fontSize: 19 }}><path d="M11 18h2v-2h-2v2Zm1-16A10 10 0 1 0 12 22 10 10 0 0 0 12 2Zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16Zm0-14a4 4 0 0 0-4 4h2a2 2 0 1 1 3.4 1.42C12.45 12.38 11 13.15 11 15h2c0-1.1.73-1.56 1.47-2.3A4 4 0 0 0 12 6Z" /></SvgIcon>
-)
-
-const FeedbackIcon = () => (
-  <SvgIcon sx={{ fontSize: 19 }}><path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2Zm0 14H5.17L4 17.17V4h16v12Zm-9-2h2v-2h-2v2Zm1-8a2 2 0 0 1 2 2c0 1.5-2 1.75-2 3h-2c0-2.25 2-2.5 2-3a.5.5 0 0 0-1 0H9a3 3 0 0 1 3-2Z" /></SvgIcon>
-)
-
 export const AppSidebar = <Role extends string>({
   navigation,
   user,
@@ -76,20 +68,7 @@ export const AppSidebar = <Role extends string>({
         onNavigate={onNavigate}
         role={user.role}
       />
-      <Stack spacing={0.25} sx={{ mt: 'auto', pb: 0.5, pt: 2 }}>
-        <ButtonBase
-          sx={{ borderRadius: 2, color: 'text.secondary', gap: 1.2, justifyContent: 'flex-start', minHeight: 34, px: 1, transition: 'all 160ms ease', width: '100%', '&:hover': { bgcolor: 'rgba(47, 112, 69, 0.07)', color: 'primary.main', transform: 'translateX(2px)' } }}
-        >
-          <HelpIcon />
-          <Typography sx={{ fontSize: '0.78rem', fontWeight: 550 }}>Help center</Typography>
-        </ButtonBase>
-        <ButtonBase
-          sx={{ borderRadius: 2, color: 'text.secondary', gap: 1.2, justifyContent: 'flex-start', minHeight: 34, px: 1, transition: 'all 160ms ease', width: '100%', '&:hover': { bgcolor: 'rgba(47, 112, 69, 0.07)', color: 'primary.main', transform: 'translateX(2px)' } }}
-        >
-          <FeedbackIcon />
-          <Typography sx={{ fontSize: '0.78rem', fontWeight: 550 }}>Send feedback</Typography>
-        </ButtonBase>
-      </Stack>
+      <Box sx={{ mt: 'auto' }} />
     </Box>
 
     <Divider sx={{ my: 2 }} />

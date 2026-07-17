@@ -106,8 +106,10 @@ export const EmployeeListPage = () => {
   const [departments, setDepartments] = useState<DepartmentSummary[]>([])
   const [filters, setFilters] = useState<EmployeeListFilters>(() => {
     const state = location.state as { departmentId?: unknown } | null
-    const queryDepartmentId = new URLSearchParams(location.search).get('departmentId')
-    if (queryDepartmentId) return { departmentId: queryDepartmentId }
+    const queryParameters = new URLSearchParams(location.search)
+    const queryDepartmentId = queryParameters.get('departmentId')
+    const querySearch = queryParameters.get('search')
+    if (queryDepartmentId || querySearch) return { departmentId: queryDepartmentId || undefined, search: querySearch || undefined }
     return typeof state?.departmentId === 'string' ? { departmentId: state.departmentId } : {}
   })
   const [csvMessage, setCsvMessage] = useState<string | null>(() => {
@@ -125,6 +127,16 @@ export const EmployeeListPage = () => {
   useEffect(() => {
     if (location.state) navigate(`${location.pathname}${location.search}`, { replace: true, state: null })
   }, [location.pathname, location.search, location.state, navigate])
+
+  useEffect(() => {
+    const queryParameters = new URLSearchParams(location.search)
+    const search = queryParameters.get('search') || undefined
+    const departmentId = queryParameters.get('departmentId') || undefined
+    if (search || departmentId) {
+      setPage(1)
+      setFilters((current) => ({ ...current, departmentId, search }))
+    }
+  }, [location.search])
 
   useEffect(() => {
     const controller = new AbortController()

@@ -1,5 +1,5 @@
 import type { ApiErrorPayload } from './types'
-import { tokenStorage } from '../auth/token-storage'
+import { expireStoredSession, tokenStorage } from '../auth/token-storage'
 
 const API_URL = (import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api').replace(/\/$/, '')
 
@@ -52,6 +52,7 @@ export const apiRequest = async <T>(path: string, options: RequestOptions = {}):
   const payload = await parseResponse(response)
   if (!response.ok) {
     const apiError = payload as Partial<ApiErrorPayload> | undefined
+    if (response.status === 401 && token) expireStoredSession()
     throw new ApiError(
       response.status,
       apiError?.error?.code ?? 'REQUEST_FAILED',

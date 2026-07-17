@@ -4,7 +4,7 @@ import { ApiError } from '../api/client'
 import type { AuthenticatedEmployee } from '../api/types'
 import { currentEmployeeRequest, loginRequest, logoutRequest, type LoginCredentials } from './auth-api'
 import { AuthContext, type AuthStatus } from './auth-context'
-import { tokenStorage } from './token-storage'
+import { AUTH_SESSION_EXPIRED_EVENT, tokenStorage } from './token-storage'
 
 export const AuthProvider = ({ children }: PropsWithChildren) => {
   const [employee, setEmployee] = useState<AuthenticatedEmployee | null>(null)
@@ -40,6 +40,16 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
       setStatus('unauthenticated')
     })
   }, [refreshEmployee])
+
+  useEffect(() => {
+    const handleExpiredSession = () => {
+      setEmployee(null)
+      setStatus('unauthenticated')
+    }
+
+    window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, handleExpiredSession)
+    return () => window.removeEventListener(AUTH_SESSION_EXPIRED_EVENT, handleExpiredSession)
+  }, [])
 
   const login = useCallback(async (credentials: LoginCredentials) => {
     const response = await loginRequest(credentials)

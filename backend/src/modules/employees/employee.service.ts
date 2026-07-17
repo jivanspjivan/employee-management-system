@@ -4,6 +4,8 @@ import { prisma } from '../../config/database.js'
 import { AppError } from '../../errors/app-error.js'
 import type { Prisma } from '../../generated/prisma/client.js'
 import { EmployeeRole, EmployeeStatus } from '../../generated/prisma/enums.js'
+import { invalidateAuthState } from '../auth/auth.cache.js'
+import { invalidateDashboardStats } from '../dashboard/dashboard.cache.js'
 import type {
   CreateEmployeeInput,
   EmployeeListQuery,
@@ -142,13 +144,16 @@ export const createEmployee = async (input: CreateEmployeeInput) => {
   const { password, ...employeeData } = input
   void password
 
-  return prisma.employee.create({
+  const employee = await prisma.employee.create({
     data: {
       ...employeeData,
       passwordHash,
     },
     select: employeeListSelect,
   })
+
+  await invalidateDashboardStats()
+  return employee
 }
 
 export const updateEmployee = async (
@@ -233,11 +238,17 @@ export const updateEmployee = async (
     }
   }
 
-  return prisma.employee.update({
+  const employee = await prisma.employee.update({
     where: { id },
     data: input,
     select: employeeListSelect,
   })
+
+  if (input.status !== undefined) await invalidateDashboardStats()
+  if (input.status !== undefined || input.role !== undefined) {
+    await invalidateAuthState(id)
+  }
+  return employee
 }
 
 export const deleteEmployee = async (id: string) => {
@@ -271,7 +282,7 @@ export const deleteEmployee = async (id: string) => {
     }
   }
 
-  return prisma.employee.update({
+  const deletedEmployee = await prisma.employee.update({
     where: { id },
     data: {
       isDeleted: true,
@@ -286,6 +297,10 @@ export const deleteEmployee = async (id: string) => {
       deletedAt: true,
     },
   })
+
+  await invalidateDashboardStats()
+  await invalidateAuthState(id)
+  return deletedEmployee
 }
 
 export const assignManager = async (employeeId: string, reportingManagerId: string | null) => {

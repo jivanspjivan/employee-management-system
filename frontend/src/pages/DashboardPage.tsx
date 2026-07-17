@@ -2,7 +2,6 @@ import {
   Alert,
   Box,
   Button,
-  CircularProgress,
   Paper,
   Skeleton,
   Stack,
@@ -98,26 +97,34 @@ function StatCard({ label, value, accent, tint, icon, loading, trend, trendLabel
               {value.toLocaleString()}
             </Typography>
           )}
-          <Stack direction="row" spacing={0.5} sx={{ alignItems: 'baseline', mt: 0.65 }}>
-            <Typography component="span" sx={{ color: trendColor, fontSize: '0.7rem', fontWeight: 750 }}>
-              {trendSymbol} {trend}
-            </Typography>
-            <Typography color="text.secondary" sx={{ fontSize: '0.62rem' }}>
-              {trendLabel}
-            </Typography>
-          </Stack>
+          {loading ? (
+            <Skeleton height={16} sx={{ mt: 0.65 }} width={112} />
+          ) : (
+            <Stack direction="row" spacing={0.5} sx={{ alignItems: 'baseline', mt: 0.65 }}>
+              <Typography component="span" sx={{ color: trendColor, fontSize: '0.7rem', fontWeight: 750 }}>
+                {trendSymbol} {trend}
+              </Typography>
+              <Typography color="text.secondary" sx={{ fontSize: '0.62rem' }}>
+                {trendLabel}
+              </Typography>
+            </Stack>
+          )}
         </Box>
-        <Box>
-          <Typography color="text.secondary" sx={{ fontSize: '0.58rem', fontWeight: 650, letterSpacing: '0.04em', mb: 0.25, textAlign: 'right', textTransform: 'uppercase' }}>
-            Monthly trend
-          </Typography>
-          <Box sx={{ bgcolor: trendBackground, borderRadius: 2, display: 'flex', px: 0.6, py: 0.35 }}>
-          <Box component="svg" aria-hidden viewBox="0 0 140 48" sx={{ height: 48, overflow: 'visible', width: 140 }}>
-            <line stroke={trendColor} strokeOpacity="0.14" strokeWidth="1" x1="0" x2="140" y1="42" y2="42" />
-            <polyline fill="none" points={sparkline} stroke={trendColor} strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.6" />
+        {loading ? (
+          <Skeleton height={58} sx={{ borderRadius: 2 }} variant="rounded" width={140} />
+        ) : (
+          <Box>
+            <Typography color="text.secondary" sx={{ fontSize: '0.58rem', fontWeight: 650, letterSpacing: '0.04em', mb: 0.25, textAlign: 'right', textTransform: 'uppercase' }}>
+              Monthly trend
+            </Typography>
+            <Box sx={{ bgcolor: trendBackground, borderRadius: 2, display: 'flex', px: 0.6, py: 0.35 }}>
+              <Box component="svg" aria-hidden viewBox="0 0 140 48" sx={{ height: 48, overflow: 'visible', width: 140 }}>
+                <line stroke={trendColor} strokeOpacity="0.14" strokeWidth="1" x1="0" x2="140" y1="42" y2="42" />
+                <polyline fill="none" points={sparkline} stroke={trendColor} strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.6" />
+              </Box>
+            </Box>
           </Box>
-          </Box>
-        </Box>
+        )}
       </Stack>
     </Paper>
   );
@@ -188,7 +195,6 @@ export function DashboardPage({
             Here&apos;s what&apos;s happening across Playstack today.
           </Typography>
         </Box>
-        {loading && <CircularProgress aria-label="Loading dashboard" size={24} />}
       </Stack>
 
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
@@ -217,6 +223,8 @@ export function DashboardPage({
       </Stack>
 
       <Box
+        aria-busy={loading}
+        aria-label={loading ? 'Loading dashboard statistics' : undefined}
         sx={{
           display: 'grid',
           gap: 2,

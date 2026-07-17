@@ -3,7 +3,10 @@ import type { RequestHandler } from 'express'
 import { prisma } from '../config/database.js'
 import { AppError } from '../errors/app-error.js'
 import { EmployeeStatus } from '../generated/prisma/enums.js'
-import { authenticatedEmployeeSelect } from '../modules/auth/auth.types.js'
+import {
+  cacheAuthState,
+  getCachedAuthState,
+} from '../modules/auth/auth.cache.js'
 import { verifyAccessToken } from '../utils/jwt.js'
 
 const getBearerToken = (authorizationHeader?: string) => {
@@ -20,14 +23,22 @@ export const authenticate: RequestHandler = async (request, _response, next) => 
   try {
     const token = getBearerToken(request.headers.authorization)
     const payload = verifyAccessToken(token)
-    const employee = await prisma.employee.findUnique({
-      where: { id: payload.sub },
-      select: {
-        ...authenticatedEmployeeSelect,
-        isDeleted: true,
-        tokenVersion: true,
-      },
-    })
+    let employee = await getCachedAuthState(payload.sub)
+
+    if (!employee) {
+      employee = await prisma.employee.findUnique({
+        where: { id: payload.sub },
+        select: {
+          id: true,
+          role: true,
+          status: true,
+          isDeleted: true,
+          tokenVersion: true,
+        },
+      })
+
+      if (employee) await cacheAuthState(employee)
+    }
 
     if (
       !employee ||
@@ -38,11 +49,8 @@ export const authenticate: RequestHandler = async (request, _response, next) => 
       throw new AppError(401, 'INVALID_TOKEN', 'Authentication token is invalid')
     }
 
-    const { isDeleted, tokenVersion, ...authenticatedEmployee } = employee
-    void isDeleted
-
-    request.authTokenVersion = tokenVersion
-    request.employee = authenticatedEmployee
+    request.authTokenVersion = employee.tokenVersion
+    request.employee = { id: employee.id, role: employee.role }
     next()
   } catch (error) {
     if (error instanceof AppError) {

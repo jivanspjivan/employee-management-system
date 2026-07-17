@@ -27,3 +27,5 @@ export const authenticatedEmployeeSelect = {
 export type AuthenticatedEmployee = Prisma.EmployeeGetPayload<{
   select: typeof authenticatedEmployeeSelect
 }>
+
+export type AuthenticatedPrincipal = Pick<AuthenticatedEmployee, 'id' | 'role'>

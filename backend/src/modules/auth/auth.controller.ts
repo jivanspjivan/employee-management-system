@@ -24,10 +24,11 @@ export const logout: RequestHandler = async (request, response) => {
   response.status(200).json({ message: 'Logout successful' })
 }
 
-export const me: RequestHandler = (request, response) => {
+export const me: RequestHandler = async (request, response) => {
   if (!request.employee) {
     throw new AppError(401, 'AUTHENTICATION_REQUIRED', 'Authentication is required')
   }
 
-  response.status(200).json({ data: { employee: request.employee } })
+  const employee = await authService.getCurrentEmployee(request.employee.id)
+  response.status(200).json({ data: { employee } })
 }

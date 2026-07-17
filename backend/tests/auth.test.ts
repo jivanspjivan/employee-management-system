@@ -6,6 +6,19 @@ const databaseMock = vi.hoisted(() => ({
   updateMany: vi.fn(),
 }))
 
+const cacheMock = vi.hoisted(() => ({
+  values: new Map<string, unknown>(),
+  get: vi.fn(),
+  set: vi.fn(),
+  delete: vi.fn(),
+}))
+
+vi.mock('../src/config/cache.js', () => ({
+  cacheGet: cacheMock.get,
+  cacheSet: cacheMock.set,
+  cacheDelete: cacheMock.delete,
+}))
+
 vi.mock('../src/config/database.js', () => ({
   prisma: {
     employee: {
@@ -57,6 +70,16 @@ const employeeRecord = {
 
 describe('authentication API', () => {
   beforeEach(() => {
+    cacheMock.values.clear()
+    cacheMock.get.mockReset().mockImplementation(async (key: string) =>
+      cacheMock.values.get(key) ?? null,
+    )
+    cacheMock.set.mockReset().mockImplementation(async (key: string, value: unknown) => {
+      cacheMock.values.set(key, value)
+    })
+    cacheMock.delete.mockReset().mockImplementation(async (key: string) => {
+      cacheMock.values.delete(key)
+    })
     employeeRecord.status = 'ACTIVE'
     employeeRecord.isDeleted = false
     employeeRecord.tokenVersion = 0
@@ -124,6 +147,8 @@ describe('authentication API', () => {
 
     expect(response.status).toBe(200)
     expect(response.body.data.employee.email).toBe('admin@example.com')
+    expect(cacheMock.get).toHaveBeenCalledWith(`auth:employee:${employeeRecord.id}`)
+    expect(cacheMock.values.has(`auth:employee:${employeeRecord.id}`)).toBe(true)
   })
 
   it('requires a Bearer token for protected endpoints', async () => {

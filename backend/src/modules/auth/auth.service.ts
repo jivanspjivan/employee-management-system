@@ -4,6 +4,7 @@ import { prisma } from '../../config/database.js'
 import { AppError } from '../../errors/app-error.js'
 import { EmployeeStatus } from '../../generated/prisma/enums.js'
 import { signAccessToken } from '../../utils/jwt.js'
+import { cacheAuthState, invalidateAuthState } from './auth.cache.js'
 import type { LoginInput } from './auth.schema.js'
 import { authenticatedEmployeeSelect } from './auth.types.js'
 
@@ -32,6 +33,14 @@ export const login = async ({ email, password }: LoginInput) => {
     tokenVersion: record.tokenVersion,
   })
 
+  await cacheAuthState({
+    id: record.id,
+    role: record.role,
+    status: record.status,
+    isDeleted: record.isDeleted,
+    tokenVersion: record.tokenVersion,
+  })
+
   const { isDeleted, passwordHash, tokenVersion, ...employee } = record
   void isDeleted
   void passwordHash
@@ -54,4 +63,19 @@ export const logout = async (employeeId: string, tokenVersion: number) => {
   if (result.count !== 1) {
     throw new AppError(401, 'INVALID_TOKEN', 'Authentication token is invalid')
   }
+
+  await invalidateAuthState(employeeId)
+}
+
+export const getCurrentEmployee = async (employeeId: string) => {
+  const employee = await prisma.employee.findUnique({
+    where: { id: employeeId },
+    select: authenticatedEmployeeSelect,
+  })
+
+  if (!employee) {
+    throw new AppError(401, 'INVALID_TOKEN', 'Authentication token is invalid')
+  }
+
+  return employee
 }

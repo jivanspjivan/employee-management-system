@@ -3,15 +3,25 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const databaseMock = vi.hoisted(() => ({
   departmentCount: vi.fn(),
-  employeeCount: vi.fn(),
+  employeeGroupBy: vi.fn(),
   findUnique: vi.fn(),
+}))
+
+const cacheMock = vi.hoisted(() => ({
+  get: vi.fn(),
+  set: vi.fn(),
+}))
+
+vi.mock('../src/config/cache.js', () => ({
+  cacheGet: cacheMock.get,
+  cacheSet: cacheMock.set,
 }))
 
 vi.mock('../src/config/database.js', () => ({
   prisma: {
     department: { count: databaseMock.departmentCount },
     employee: {
-      count: databaseMock.employeeCount,
+      groupBy: databaseMock.employeeGroupBy,
       findUnique: databaseMock.findUnique,
     },
   },
@@ -59,14 +69,16 @@ const createToken = (role: EmployeeRole) =>
 describe('dashboard statistics API', () => {
   beforeEach(() => {
     databaseMock.departmentCount.mockReset()
-    databaseMock.employeeCount.mockReset()
+    databaseMock.employeeGroupBy.mockReset()
     databaseMock.findUnique.mockReset()
+    cacheMock.get.mockReset().mockResolvedValue(null)
+    cacheMock.set.mockReset().mockResolvedValue(undefined)
     authenticatedEmployee.role = EmployeeRole.SUPER_ADMIN
     databaseMock.findUnique.mockImplementation(async () => ({ ...authenticatedEmployee }))
-    databaseMock.employeeCount
-      .mockResolvedValueOnce(12)
-      .mockResolvedValueOnce(9)
-      .mockResolvedValueOnce(3)
+    databaseMock.employeeGroupBy.mockResolvedValue([
+      { status: EmployeeStatus.ACTIVE, _count: { _all: 9 } },
+      { status: EmployeeStatus.INACTIVE, _count: { _all: 3 } },
+    ])
     databaseMock.departmentCount.mockResolvedValue(4)
   })
 
@@ -82,15 +94,42 @@ describe('dashboard statistics API', () => {
       inactiveEmployees: 3,
       departmentCount: 4,
     })
-    expect(databaseMock.employeeCount).toHaveBeenNthCalledWith(1, {
+    expect(databaseMock.employeeGroupBy).toHaveBeenCalledWith({
+      by: ['status'],
       where: { isDeleted: false },
+      _count: { _all: true },
     })
-    expect(databaseMock.employeeCount).toHaveBeenNthCalledWith(2, {
-      where: { isDeleted: false, status: EmployeeStatus.ACTIVE },
-    })
-    expect(databaseMock.employeeCount).toHaveBeenNthCalledWith(3, {
-      where: { isDeleted: false, status: EmployeeStatus.INACTIVE },
-    })
+    expect(cacheMock.set).toHaveBeenCalledWith(
+      'dashboard:stats:v1',
+      response.body.data.stats,
+      300,
+    )
+  })
+
+  it('returns cached statistics without querying the database', async () => {
+    const cachedStats = {
+      totalEmployees: 20,
+      activeEmployees: 17,
+      inactiveEmployees: 3,
+      departmentCount: 6,
+    }
+    cacheMock.get.mockImplementation(async (key: string) =>
+      key === 'dashboard:stats:v1' ? cachedStats : null,
+    )
+
+    const response = await request(createApp())
+      .get('/api/dashboard/stats')
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.SUPER_ADMIN)}`)
+
+    expect(response.status).toBe(200)
+    expect(response.body.data.stats).toEqual(cachedStats)
+    expect(databaseMock.employeeGroupBy).not.toHaveBeenCalled()
+    expect(databaseMock.departmentCount).not.toHaveBeenCalled()
+    expect(cacheMock.set).not.toHaveBeenCalledWith(
+      'dashboard:stats:v1',
+      expect.anything(),
+      expect.anything(),
+    )
   })
 
   it('allows an HR Manager to view dashboard statistics', async () => {
@@ -112,7 +151,7 @@ describe('dashboard statistics API', () => {
 
     expect(response.status).toBe(403)
     expect(response.body.error.code).toBe('INSUFFICIENT_PERMISSIONS')
-    expect(databaseMock.employeeCount).not.toHaveBeenCalled()
+    expect(databaseMock.employeeGroupBy).not.toHaveBeenCalled()
   })
 
   it('requires authentication', async () => {
@@ -120,6 +159,6 @@ describe('dashboard statistics API', () => {
 
     expect(response.status).toBe(401)
     expect(response.body.error.code).toBe('AUTHENTICATION_REQUIRED')
-    expect(databaseMock.employeeCount).not.toHaveBeenCalled()
+    expect(databaseMock.employeeGroupBy).not.toHaveBeenCalled()
   })
 })

@@ -1,4 +1,5 @@
 import { prisma } from '../../config/database.js'
+import { invalidateDashboardStats } from '../dashboard/dashboard.cache.js'
 
 export const listDepartments = async () => {
   const departments = await prisma.department.findMany({
@@ -18,8 +19,12 @@ export const listDepartments = async () => {
   }))
 }
 
-export const createDepartment = (name: string) =>
-  prisma.department.create({
+export const createDepartment = async (name: string) => {
+  const department = await prisma.department.create({
     data: { name },
     select: { id: true, name: true },
   })
+
+  await invalidateDashboardStats()
+  return department
+}

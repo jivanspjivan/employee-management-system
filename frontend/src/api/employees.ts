@@ -55,6 +55,9 @@ export const createEmployeeRequest = (employee: CreateEmployeeInput) =>
 export const getEmployeeRequest = (employeeId: string, signal?: AbortSignal) =>
   apiRequest<{ data: { employee: EmployeeListItem } }>(`/employees/${employeeId}`, { signal })
 
+export const getEmployeeReporteesRequest = (employeeId: string, signal?: AbortSignal) =>
+  apiRequest<{ data: { reportees: EmployeeListItem[] } }>(`/employees/${employeeId}/reportees`, { signal })
+
 export type UpdateEmployeeInput = Omit<CreateEmployeeInput, 'employeeId' | 'password' | 'reportingManagerId'>
 
 export const updateEmployeeRequest = (employeeId: string, employee: UpdateEmployeeInput) =>

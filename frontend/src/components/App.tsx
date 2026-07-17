@@ -8,6 +8,7 @@ import { useAuth } from '../auth'
 import { DashboardPage, type DashboardStats } from '../pages/DashboardPage'
 import { CreateEmployeePage } from '../pages/CreateEmployeePage'
 import { EmployeeListPage } from '../pages/EmployeeListPage'
+import { EmployeeDetailsPage } from '../pages/EmployeeDetailsPage'
 import { EditEmployeePage } from '../pages/EditEmployeePage'
 import { DepartmentsPage } from '../pages/DepartmentsPage'
 import { LoginPage, type LoginCredentials } from '../pages/LoginPage'
@@ -106,7 +107,7 @@ const AuthenticatedApp = () => {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/employees" element={<EmployeeListPage />} />
         <Route path="/employees/new" element={employee.role === 'EMPLOYEE' ? <Navigate replace to="/profile" /> : <CreateEmployeePage />} />
-        <Route path="/employees/:id" element={<PlaceholderRoute title="Employee details" />} />
+        <Route path="/employees/:id" element={<EmployeeDetailsPage />} />
         <Route path="/employees/:id/edit" element={employee.role === 'EMPLOYEE' ? <Navigate replace to="/profile" /> : <EditEmployeePage />} />
         <Route path="/departments/*" element={employee.role === 'EMPLOYEE' ? <Navigate replace to="/profile" /> : <DepartmentsPage />} />
         <Route path="/payroll" element={<PlaceholderRoute description="This page is not yet designed." title="Payroll" />} />

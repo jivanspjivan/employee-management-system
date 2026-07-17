@@ -46,13 +46,13 @@ export function LoginPage({ onLogin, loading = false, error = null }: LoginPageP
         <Paper elevation={8} sx={{ borderRadius: 4, overflow: 'hidden' }}>
           <Box sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', px: { xs: 3, sm: 5 }, py: 4 }}>
             <Typography component="p" sx={{ fontWeight: 700, letterSpacing: 1 }} variant="overline">
-              Employee Management System
+              Playstack
             </Typography>
             <Typography component="h1" sx={{ mt: 0.5 }} variant="h4">
               Welcome back
             </Typography>
             <Typography sx={{ mt: 1, opacity: 0.85 }} variant="body2">
-              Sign in to manage your organization.
+              Sign in to your employee management workspace.
             </Typography>
           </Box>
 

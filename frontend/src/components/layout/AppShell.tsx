@@ -13,7 +13,7 @@ export const AppShell = <Role extends string>({
   onNavigate,
   onLogout,
   title = 'Dashboard',
-  brand = 'Employee Management',
+  brand = 'Playstack',
 }: AppShellProps<Role>) => {
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -62,7 +62,18 @@ export const AppShell = <Role extends string>({
       <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column', minWidth: 0 }}>
         <AppHeader onOpenMenu={() => setMobileOpen(true)} title={title} user={user} />
         <Box component="main" sx={{ flex: 1, p: { xs: 2, sm: 3, lg: 4 } }}>
-          {children}
+          <Box
+            key={activePath}
+            sx={{
+              animation: 'pageEnter 240ms cubic-bezier(0.2, 0.7, 0.3, 1)',
+              '@keyframes pageEnter': {
+                from: { opacity: 0, transform: 'translateY(7px)' },
+                to: { opacity: 1, transform: 'translateY(0)' },
+              },
+            }}
+          >
+            {children}
+          </Box>
         </Box>
       </Box>
     </Box>

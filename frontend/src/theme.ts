@@ -10,7 +10,7 @@ export const theme = createTheme({
       default: '#eff4f0',
       paper: '#ffffff',
     },
-    divider: '#dae4dc',
+    divider: '#e7ece8',
     text: {
       primary: '#17211b',
       secondary: '#637269',

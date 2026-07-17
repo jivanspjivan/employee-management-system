@@ -34,12 +34,18 @@ export const AppNavigation = <Role extends string>({
               minHeight: 44,
               px: 1.5,
               textAlign: 'left',
+              transition: 'background-color 160ms ease, color 160ms ease, transform 160ms ease, box-shadow 160ms ease',
               width: '100%',
               ...(isActive && {
-                bgcolor: 'rgba(47, 112, 69, 0.1)',
-                boxShadow: 'inset 3px 0 0 #2f7045',
+                bgcolor: 'primary.main',
+                boxShadow: '0 6px 16px rgba(47, 112, 69, 0.2)',
+                color: 'primary.contrastText',
               }),
-              '&:hover': { bgcolor: isActive ? 'rgba(47, 112, 69, 0.14)' : 'action.hover' },
+              '&:hover': {
+                bgcolor: isActive ? 'primary.dark' : 'rgba(47, 112, 69, 0.08)',
+                color: isActive ? 'primary.contrastText' : 'primary.main',
+                transform: 'translateX(3px)',
+              },
             }}
           >
             {item.icon && (

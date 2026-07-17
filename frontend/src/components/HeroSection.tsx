@@ -34,7 +34,7 @@ export const HeroSection = ({ apiState }: HeroSectionProps) => (
         textTransform: 'uppercase',
       }}
     >
-      Employee Management System
+      Playstack Employee Management
     </Typography>
 
     <Typography

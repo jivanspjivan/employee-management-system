@@ -178,6 +178,51 @@ describe('employee detail API', () => {
   })
 })
 
+describe('direct reportees API', () => {
+  beforeEach(() => {
+    databaseMock.findFirst.mockReset()
+    databaseMock.findMany.mockReset()
+    databaseMock.findUnique.mockReset()
+    authenticatedEmployee.role = EmployeeRole.SUPER_ADMIN
+    databaseMock.findUnique.mockResolvedValue({ ...authenticatedEmployee })
+    databaseMock.findFirst.mockResolvedValue(listedEmployee)
+    databaseMock.findMany.mockResolvedValue([
+      {
+        ...listedEmployee,
+        id: '6bdd0aa2-a313-457f-82f5-f5c568a8fa4c',
+        reportingManagerId: authenticatedEmployee.id,
+      },
+    ])
+  })
+
+  it('returns an employee direct reportees', async () => {
+    const response = await request(createApp())
+      .get(`/api/employees/${authenticatedEmployee.id}/reportees`)
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.SUPER_ADMIN)}`)
+
+    expect(response.status).toBe(200)
+    expect(response.body.data.reportees).toHaveLength(1)
+    expect(databaseMock.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { reportingManagerId: authenticatedEmployee.id, isDeleted: false },
+        orderBy: { name: 'asc' },
+      }),
+    )
+  })
+
+  it('returns 404 when the selected manager does not exist', async () => {
+    databaseMock.findFirst.mockResolvedValue(null)
+
+    const response = await request(createApp())
+      .get('/api/employees/6bdd0aa2-a313-457f-82f5-f5c568a8fa4c/reportees')
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.SUPER_ADMIN)}`)
+
+    expect(response.status).toBe(404)
+    expect(response.body.error.code).toBe('EMPLOYEE_NOT_FOUND')
+    expect(databaseMock.findMany).not.toHaveBeenCalled()
+  })
+})
+
 describe('create employee API', () => {
   const input = {
     employeeId: 'EMP-002',
@@ -399,5 +444,120 @@ describe('delete employee API', () => {
 
     expect(response.status).toBe(404)
     expect(response.body.error.code).toBe('EMPLOYEE_NOT_FOUND')
+  })
+})
+
+describe('assign reporting manager API', () => {
+  const employeeId = '6bdd0aa2-a313-457f-82f5-f5c568a8fa4c'
+  const managerId = '51b3dfb6-7c06-4540-8f45-b65be389ef27'
+
+  beforeEach(() => {
+    databaseMock.findFirst.mockReset()
+    databaseMock.findUnique.mockReset()
+    databaseMock.update.mockReset()
+    authenticatedEmployee.role = EmployeeRole.SUPER_ADMIN
+    databaseMock.findUnique.mockImplementation(async () => ({ ...authenticatedEmployee }))
+    databaseMock.findFirst.mockImplementation(async ({ where }: { where: { id: string } }) => {
+      if (where.id === employeeId) {
+        return { id: employeeId, reportingManagerId: null }
+      }
+
+      if (where.id === managerId) {
+        return { id: managerId, reportingManagerId: null }
+      }
+
+      return null
+    })
+    databaseMock.update.mockResolvedValue({
+      ...listedEmployee,
+      id: employeeId,
+      reportingManagerId: managerId,
+      reportingManager: {
+        id: managerId,
+        employeeId: 'MGR-001',
+        name: 'Reporting Manager',
+      },
+    })
+  })
+
+  it('allows a Super Admin to assign a reporting manager', async () => {
+    const response = await request(createApp())
+      .patch(`/api/employees/${employeeId}/manager`)
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.SUPER_ADMIN)}`)
+      .send({ reportingManagerId: managerId })
+
+    expect(response.status).toBe(200)
+    expect(response.body.data.employee.reportingManagerId).toBe(managerId)
+    expect(databaseMock.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: employeeId },
+        data: { reportingManagerId: managerId },
+      }),
+    )
+  })
+
+  it('allows an HR Manager to remove a reporting manager', async () => {
+    authenticatedEmployee.role = EmployeeRole.HR_MANAGER
+    databaseMock.update.mockResolvedValue({
+      ...listedEmployee,
+      id: employeeId,
+      reportingManagerId: null,
+      reportingManager: null,
+    })
+
+    const response = await request(createApp())
+      .patch(`/api/employees/${employeeId}/manager`)
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.HR_MANAGER)}`)
+      .send({ reportingManagerId: null })
+
+    expect(response.status).toBe(200)
+    expect(response.body.data.employee.reportingManagerId).toBeNull()
+  })
+
+  it('prevents an Employee from assigning a manager', async () => {
+    authenticatedEmployee.role = EmployeeRole.EMPLOYEE
+
+    const response = await request(createApp())
+      .patch(`/api/employees/${employeeId}/manager`)
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.EMPLOYEE)}`)
+      .send({ reportingManagerId: managerId })
+
+    expect(response.status).toBe(403)
+    expect(response.body.error.code).toBe('INSUFFICIENT_PERMISSIONS')
+    expect(databaseMock.update).not.toHaveBeenCalled()
+  })
+
+  it('prevents an employee from reporting to themselves', async () => {
+    const response = await request(createApp())
+      .patch(`/api/employees/${employeeId}/manager`)
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.SUPER_ADMIN)}`)
+      .send({ reportingManagerId: employeeId })
+
+    expect(response.status).toBe(400)
+    expect(response.body.error.code).toBe('CIRCULAR_REPORTING')
+    expect(databaseMock.update).not.toHaveBeenCalled()
+  })
+
+  it('prevents a circular reporting chain', async () => {
+    databaseMock.findFirst.mockImplementation(async ({ where }: { where: { id: string } }) => {
+      if (where.id === employeeId) {
+        return { id: employeeId, reportingManagerId: null }
+      }
+
+      if (where.id === managerId) {
+        return { id: managerId, reportingManagerId: employeeId }
+      }
+
+      return null
+    })
+
+    const response = await request(createApp())
+      .patch(`/api/employees/${employeeId}/manager`)
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.SUPER_ADMIN)}`)
+      .send({ reportingManagerId: managerId })
+
+    expect(response.status).toBe(400)
+    expect(response.body.error.code).toBe('CIRCULAR_REPORTING')
+    expect(databaseMock.update).not.toHaveBeenCalled()
   })
 })

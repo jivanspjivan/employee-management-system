@@ -142,3 +142,41 @@ invalidated. A Super Admin cannot delete their own account.
 DELETE /employees/:id
 Authorization: Bearer {{token}}
 ```
+
+## Organizational hierarchy
+
+### Organization tree
+
+Returns every non-deleted employee as a nested reporting tree. Employees with
+no available reporting manager are returned as root nodes.
+
+```http
+GET /organization/tree
+Authorization: Bearer {{token}}
+```
+
+### Direct reportees
+
+Returns the non-deleted employees who report directly to the selected employee.
+
+```http
+GET /employees/:id/reportees
+Authorization: Bearer {{token}}
+```
+
+### Assign or remove a reporting manager
+
+Super Admin and HR Manager only. Circular reporting relationships are rejected.
+Send `null` to remove the current manager.
+
+```http
+PATCH /employees/:id/manager
+Authorization: Bearer {{token}}
+Content-Type: application/json
+```
+
+```json
+{
+  "reportingManagerId": "51b3dfb6-7c06-4540-8f45-b65be389ef27"
+}
+```

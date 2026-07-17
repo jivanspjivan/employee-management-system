@@ -37,6 +37,7 @@ export const createEmployeeSchema = z
 
 export const updateEmployeeSchema = z
   .object(employeeFields)
+  .omit({ reportingManagerId: true })
   .partial()
   .strict()
   .refine((input) => Object.keys(input).length > 0, 'At least one field is required')
@@ -50,6 +51,12 @@ export const updateOwnProfileSchema = z
   .partial()
   .strict()
   .refine((input) => Object.keys(input).length > 0, 'At least one field is required')
+
+export const assignManagerSchema = z
+  .object({
+    reportingManagerId: z.uuid().nullable(),
+  })
+  .strict()
 
 export type CreateEmployeeInput = z.infer<typeof createEmployeeSchema>
 export type UpdateEmployeeInput = z.infer<typeof updateEmployeeSchema>

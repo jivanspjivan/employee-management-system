@@ -55,6 +55,31 @@ Authorization: Bearer {{token}}
 Logout increments the employee's token version. The same token cannot be used
 again after a successful logout.
 
+## Dashboard
+
+### Statistics
+
+Super Admin and HR Manager only. Soft-deleted employees are excluded from all
+employee totals.
+
+```http
+GET /dashboard/stats
+Authorization: Bearer {{token}}
+```
+
+```json
+{
+  "data": {
+    "stats": {
+      "totalEmployees": 12,
+      "activeEmployees": 9,
+      "inactiveEmployees": 3,
+      "departmentCount": 4
+    }
+  }
+}
+```
+
 ## Health check
 
 ```http

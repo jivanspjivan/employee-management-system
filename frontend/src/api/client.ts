@@ -63,3 +63,24 @@ export const apiRequest = async <T>(path: string, options: RequestOptions = {}):
 
   return payload as T
 }
+
+export const downloadApiFile = async (path: string, fallbackFileName: string) => {
+  const token = tokenStorage.get()
+  const headers = new Headers({ Accept: 'text/csv' })
+  if (token) headers.set('Authorization', `Bearer ${token}`)
+
+  const response = await fetch(`${API_URL}${path.startsWith('/') ? path : `/${path}`}`, { headers })
+  if (!response.ok) {
+    if (response.status === 401 && token) expireStoredSession()
+    throw new ApiError(response.status, 'DOWNLOAD_FAILED', 'The file could not be downloaded')
+  }
+
+  const disposition = response.headers.get('content-disposition') ?? ''
+  const fileName = disposition.match(/filename="?([^";]+)"?/i)?.[1] ?? fallbackFileName
+  const url = URL.createObjectURL(await response.blob())
+  const link = document.createElement('a')
+  link.href = url
+  link.download = fileName
+  link.click()
+  URL.revokeObjectURL(url)
+}

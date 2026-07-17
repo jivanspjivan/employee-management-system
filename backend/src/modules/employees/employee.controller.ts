@@ -1,4 +1,5 @@
 import type { RequestHandler } from 'express'
+import { fileURLToPath } from 'node:url'
 
 import { AppError } from '../../errors/app-error.js'
 import {
@@ -9,12 +10,18 @@ import { EmployeeRole } from '../../generated/prisma/enums.js'
 import {
   assignManagerSchema,
   createEmployeeSchema,
+  csvImportJobSchema,
   employeeIdParamSchema,
   employeeListQuerySchema,
   employeeSearchQuerySchema,
   updateEmployeeSchema,
 } from './employee.schema.js'
 import * as employeeService from './employee.service.js'
+import * as csvJobService from './employee-csv-job.service.js'
+
+const employeeImportTemplatePath = fileURLToPath(
+  new URL('../../../public/templates/employee-import-template.csv', import.meta.url),
+)
 
 export const listEmployees: RequestHandler = async (request, response) => {
   const query = employeeListQuerySchema.parse(request.query)
@@ -160,5 +167,34 @@ export const assignManager: RequestHandler = async (request, response) => {
   response.status(200).json({
     message: reportingManagerId ? 'Reporting manager assigned successfully' : 'Reporting manager removed',
     data: { employee },
+  })
+}
+
+const requireCsvActor = (request: Parameters<RequestHandler>[0]) => {
+  if (!request.employee) throw new AppError(401, 'AUTHENTICATION_REQUIRED', 'Authentication is required')
+  return { id: request.employee.id, role: request.employee.role }
+}
+
+export const startEmployeeImport: RequestHandler = async (request, response) => {
+  const { csv } = csvImportJobSchema.parse(request.body)
+  const job = await csvJobService.startImportJob(csv, requireCsvActor(request))
+  response.status(202).json({ message: 'Employee import started', data: { job } })
+}
+
+export const startEmployeeExport: RequestHandler = async (request, response) => {
+  const job = await csvJobService.startExportJob(requireCsvActor(request))
+  response.status(202).json({ message: 'Employee export started', data: { job } })
+}
+
+export const getEmployeeCsvJob: RequestHandler = async (request, response) => {
+  const { id } = employeeIdParamSchema.parse(request.params)
+  const actor = requireCsvActor(request)
+  const job = await csvJobService.getCsvJob(id, actor.id)
+  response.status(200).json({ data: { job } })
+}
+
+export const downloadEmployeeImportTemplate: RequestHandler = (_request, response, next) => {
+  response.download(employeeImportTemplatePath, 'playstack-employee-import-template.csv', (error) => {
+    if (error) next(error)
   })
 }

@@ -1,4 +1,4 @@
-import { apiRequest } from './client'
+import { apiRequest, downloadApiFile } from './client'
 import type { EmployeeListItem, EmployeeRole, EmployeeSearchResult, EmployeeStatus, PaginationMeta } from './types'
 
 export type EmployeeListResponse = {
@@ -58,6 +58,34 @@ export type CreateEmployeeInput = {
 }
 
 export type CreateEmployeeCsvInput = CreateEmployeeInput
+
+export type EmployeeCsvJob = {
+  id: string
+  type: 'IMPORT' | 'EXPORT'
+  status: 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED'
+  progress: number
+  processed: number
+  total: number
+  created: number
+  updated: number
+  failed: number
+  errors: string[]
+  fileName?: string
+  csv?: string
+  error?: string
+}
+
+export const startEmployeeImportJobRequest = (csv: string) =>
+  apiRequest<{ data: { job: EmployeeCsvJob } }>('/employees/csv-jobs/import', { body: { csv }, method: 'POST' })
+
+export const startEmployeeExportJobRequest = () =>
+  apiRequest<{ data: { job: EmployeeCsvJob } }>('/employees/csv-jobs/export', { method: 'POST' })
+
+export const getEmployeeCsvJobRequest = (jobId: string) =>
+  apiRequest<{ data: { job: EmployeeCsvJob } }>(`/employees/csv-jobs/${jobId}`)
+
+export const downloadEmployeeImportTemplateRequest = () =>
+  downloadApiFile('/employees/csv-template', 'playstack-employee-import-template.csv')
 
 export const createEmployeeRequest = (employee: CreateEmployeeInput) =>
   apiRequest('/employees', { body: employee, method: 'POST' })

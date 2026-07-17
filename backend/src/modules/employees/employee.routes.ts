@@ -7,6 +7,11 @@ import * as employeeController from './employee.controller.js'
 
 export const employeeRouter = Router()
 
+employeeRouter.post('/csv-jobs/import', authenticate, authorize(EmployeeRole.SUPER_ADMIN, EmployeeRole.HR_MANAGER), employeeController.startEmployeeImport)
+employeeRouter.post('/csv-jobs/export', authenticate, authorize(EmployeeRole.SUPER_ADMIN, EmployeeRole.HR_MANAGER), employeeController.startEmployeeExport)
+employeeRouter.get('/csv-jobs/:id', authenticate, authorize(EmployeeRole.SUPER_ADMIN, EmployeeRole.HR_MANAGER), employeeController.getEmployeeCsvJob)
+employeeRouter.get('/csv-template', authenticate, authorize(EmployeeRole.SUPER_ADMIN, EmployeeRole.HR_MANAGER), employeeController.downloadEmployeeImportTemplate)
+
 employeeRouter.post(
   '/',
   authenticate,

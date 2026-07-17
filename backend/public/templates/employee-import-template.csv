@@ -1,0 +1,2 @@
+employeeId,name,email,password,phone,departmentName,designation,salary,joiningDate,status,role,reportingManagerId,profileImageUrl
+PS-BLR-1200,Ananya Rao,ananya.rao@playstack.example,Temporary@123,+91 98765 43210,Administration,Product Designer,850000,2026-07-18,ACTIVE,EMPLOYEE,,https://example.com/avatar.jpg

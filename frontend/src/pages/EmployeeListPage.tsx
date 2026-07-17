@@ -6,6 +6,11 @@ import {
   Button,
   Checkbox,
   Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  LinearProgress,
   Pagination,
   Paper,
   MenuItem,
@@ -29,7 +34,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 
 import { listDepartmentsRequest } from '../api/departments'
 import { apiRequest } from '../api/client'
-import { createEmployeeRequest, deleteEmployeeRequest, listEmployeesRequest, updateEmployeeStatusRequest, type CreateEmployeeCsvInput, type EmployeeListFilters } from '../api/employees'
+import { deleteEmployeeRequest, downloadEmployeeImportTemplateRequest, getEmployeeCsvJobRequest, listEmployeesRequest, startEmployeeExportJobRequest, startEmployeeImportJobRequest, updateEmployeeStatusRequest, type EmployeeCsvJob, type EmployeeListFilters } from '../api/employees'
 import type { DepartmentSummary, EmployeeListItem, EmployeeRole, EmployeeStatus, PaginationMeta } from '../api/types'
 import { useAuth } from '../auth'
 
@@ -42,6 +47,12 @@ const formatDate = (value: string) =>
   new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }).format(
     new Date(value),
   )
+
+const formatFileSize = (bytes: number) => bytes < 1024
+  ? `${bytes} B`
+  : bytes < 1024 * 1024
+    ? `${(bytes / 1024).toFixed(1)} KB`
+    : `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 
 const initialsFor = (name: string) =>
   name.trim().split(/\s+/).slice(0, 2).map((part) => part.charAt(0)).join('').toUpperCase()
@@ -62,25 +73,13 @@ const avatarColorsForDepartment = (departmentId: string) => {
   return departmentAvatarPalette[hash % departmentAvatarPalette.length]!
 }
 
-const csvValue = (value: unknown) => `"${String(value ?? '').replaceAll('"', '""')}"`
-
-const parseCsvLine = (line: string) => {
-  const values: string[] = []
-  let value = ''
-  let quoted = false
-  for (let index = 0; index < line.length; index += 1) {
-    const character = line[index]!
-    if (character === '"' && quoted && line[index + 1] === '"') {
-      value += '"'
-      index += 1
-    } else if (character === '"') quoted = !quoted
-    else if (character === ',' && !quoted) {
-      values.push(value.trim())
-      value = ''
-    } else value += character
-  }
-  values.push(value.trim())
-  return values
+const csvCardHover = {
+  transition: 'border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease',
+  '&:hover': {
+    borderColor: '#b9cdbf',
+    boxShadow: '0 9px 22px rgba(31,64,43,.09)',
+    transform: 'translateY(-2px)',
+  },
 }
 
 const AddEmployeeIcon = () => (
@@ -117,8 +116,10 @@ export const EmployeeListPage = () => {
     return typeof state?.message === 'string' ? state.message : null
   })
   const [csvError, setCsvError] = useState<string | null>(null)
-  const [csvWorking, setCsvWorking] = useState(false)
+  const [csvDialogMode, setCsvDialogMode] = useState<'IMPORT' | 'EXPORT' | null>(null)
+  const [csvJob, setCsvJob] = useState<EmployeeCsvJob | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const completedCsvJobRef = useRef<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [actionAnchor, setActionAnchor] = useState<HTMLElement | null>(null)
   const [actionEmployee, setActionEmployee] = useState<EmployeeListItem | null>(null)
@@ -170,6 +171,28 @@ export const EmployeeListPage = () => {
 
     return () => controller.abort()
   }, [filters, page])
+
+  useEffect(() => {
+    if (!csvJob || csvJob.status === 'COMPLETED' || csvJob.status === 'FAILED') return
+    const timer = window.setInterval(() => {
+      void getEmployeeCsvJobRequest(csvJob.id)
+        .then(({ data }) => setCsvJob(data.job))
+        .catch((requestError: unknown) => {
+          setCsvError(requestError instanceof Error ? requestError.message : 'Unable to read CSV job progress')
+          window.clearInterval(timer)
+        })
+    }, 600)
+    return () => window.clearInterval(timer)
+  }, [csvJob])
+
+  useEffect(() => {
+    if (!csvJob || csvJob.status !== 'COMPLETED' || completedCsvJobRef.current === csvJob.id) return
+    completedCsvJobRef.current = csvJob.id
+    if (csvJob.type === 'IMPORT') {
+      setCsvMessage(`Import complete: ${csvJob.created} created, ${csvJob.updated} updated, ${csvJob.failed} failed.`)
+      refreshList()
+    }
+  }, [csvJob])
 
   const updateFilter = (key: keyof EmployeeListFilters, value: string) => {
     setPage(1)
@@ -246,84 +269,82 @@ export const EmployeeListPage = () => {
   }
 
   const exportEmployees = async () => {
-    setCsvWorking(true)
     setCsvError(null)
     setCsvMessage(null)
+    setCsvDialogMode('EXPORT')
+    setCsvJob(null)
     try {
-      const firstResponse = await listEmployeesRequest(1, 100)
-      const allEmployees = [...firstResponse.data.employees]
-      for (let nextPage = 2; nextPage <= firstResponse.data.pagination.totalPages; nextPage += 1) {
-        const response = await listEmployeesRequest(nextPage, 100)
-        allEmployees.push(...response.data.employees)
-      }
-      const headers = ['employeeId', 'name', 'email', 'password', 'phone', 'departmentId', 'departmentName', 'designation', 'salary', 'joiningDate', 'status', 'role', 'reportingManagerId', 'reportingManagerName', 'profileImageUrl']
-      const rows = allEmployees.map((employee) => [
-        employee.employeeId, employee.name, employee.email, '', employee.phone, employee.departmentId,
-        employee.department.name, employee.designation, employee.salary, employee.joiningDate,
-        employee.status, employee.role, employee.reportingManagerId,
-        employee.reportingManager?.name ?? '', employee.profileImageUrl,
-      ].map(csvValue).join(','))
-      const blob = new Blob([[headers.join(','), ...rows].join('\n')], { type: 'text/csv;charset=utf-8' })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `playstack-employees-${new Date().toISOString().slice(0, 10)}.csv`
-      link.click()
-      URL.revokeObjectURL(url)
-      setCsvMessage(`Exported ${allEmployees.length} employees.`)
+      const { data } = await startEmployeeExportJobRequest()
+      setCsvJob(data.job)
     } catch (requestError) {
       setCsvError(requestError instanceof Error ? requestError.message : 'Unable to export employees')
-    } finally {
-      setCsvWorking(false)
+      setCsvDialogMode(null)
     }
   }
 
   const importEmployees = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
-    setCsvWorking(true)
     setCsvError(null)
     setCsvMessage(null)
     try {
-      const lines = (await file.text()).split(/\r?\n/).filter((line) => line.trim())
-      const headers = parseCsvLine(lines.shift() ?? '')
-      const required = ['employeeId', 'name', 'email', 'password', 'departmentId', 'designation', 'salary', 'joiningDate']
-      if (required.some((header) => !headers.includes(header))) {
-        throw new Error(`CSV requires columns: ${required.join(', ')}`)
-      }
-      let imported = 0
-      const failures: string[] = []
-      for (const [rowIndex, line] of lines.entries()) {
-        const values = parseCsvLine(line)
-        const record = Object.fromEntries(headers.map((header, index) => [header, values[index] ?? '']))
-        const input: CreateEmployeeCsvInput = {
-          employeeId: record.employeeId!, name: record.name!, email: record.email!, password: record.password!,
-          departmentId: record.departmentId!, designation: record.designation!, salary: Number(record.salary),
-          joiningDate: record.joiningDate!,
-          ...(record.phone && { phone: record.phone }),
-          ...(record.status && { status: record.status as EmployeeStatus }),
-          ...(record.role && { role: record.role as EmployeeRole }),
-          ...(record.reportingManagerId && { reportingManagerId: record.reportingManagerId }),
-          ...(record.profileImageUrl && { profileImageUrl: record.profileImageUrl }),
-        }
-        try {
-          await createEmployeeRequest(input)
-          imported += 1
-        } catch (rowError) {
-          failures.push(`row ${rowIndex + 2}: ${rowError instanceof Error ? rowError.message : 'failed'}`)
-        }
-      }
-      setCsvMessage(`Imported ${imported} of ${lines.length} employees.${failures.length ? ` ${failures.length} failed.` : ''}`)
-      if (failures.length) setCsvError(failures.slice(0, 3).join(' · '))
-      setPage(1)
-      setFilters((current) => ({ ...current }))
+      const { data } = await startEmployeeImportJobRequest(await file.text())
+      setCsvJob(data.job)
     } catch (importError) {
       setCsvError(importError instanceof Error ? importError.message : 'Unable to import employees')
-    } finally {
-      setCsvWorking(false)
-      event.target.value = ''
+      setCsvDialogMode(null)
+    }
+    event.target.value = ''
+  }
+
+  const downloadCsvTemplate = async () => {
+    try {
+      await downloadEmployeeImportTemplateRequest()
+    } catch (requestError) {
+      setCsvError(requestError instanceof Error ? requestError.message : 'Unable to download CSV template')
     }
   }
+
+  const downloadCompletedExport = () => {
+    if (!csvJob?.csv) return
+    const url = URL.createObjectURL(new Blob([csvJob.csv], { type: 'text/csv;charset=utf-8' }))
+    const link = document.createElement('a')
+    link.href = url
+    link.download = csvJob.fileName ?? 'playstack-employees.csv'
+    link.click()
+    URL.revokeObjectURL(url)
+    setCsvMessage(`Exported ${csvJob.total} employees.`)
+  }
+
+  const downloadImportReport = () => {
+    if (!csvJob || csvJob.type !== 'IMPORT') return
+    const reportRows = [
+      'metric,value',
+      `processed,${csvJob.processed}`,
+      `created,${csvJob.created}`,
+      `updated,${csvJob.updated}`,
+      `failed,${csvJob.failed}`,
+      '',
+      'error',
+      ...csvJob.errors.map((error) => `"${error.replaceAll('"', '""')}"`),
+    ]
+    const url = URL.createObjectURL(new Blob([reportRows.join('\n')], { type: 'text/csv;charset=utf-8' }))
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `playstack-import-report-${new Date().toISOString().slice(0, 10)}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const csvJobWorking = (csvDialogMode === 'EXPORT' && !csvJob) || csvJob?.status === 'QUEUED' || csvJob?.status === 'PROCESSING'
+  const csvJobCompleted = csvJob?.status === 'COMPLETED'
+  const csvDialogTitle = !csvJob
+    ? csvDialogMode === 'IMPORT' ? 'Import employees' : 'Export employees'
+    : csvJob.status === 'COMPLETED'
+      ? `${csvJob.type === 'IMPORT' ? 'Import' : 'Export'} completed`
+      : csvJob.status === 'FAILED'
+        ? `${csvJob.type === 'IMPORT' ? 'Import' : 'Export'} failed`
+        : `${csvJob.type === 'IMPORT' ? 'Importing' : 'Exporting'} employees`
 
   return (
     <Stack spacing={2.5}>
@@ -345,13 +366,39 @@ export const EmployeeListPage = () => {
             </Box>
           </Stack>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-            <Button disabled={csvWorking} onClick={() => void exportEmployees()} size="small" startIcon={<SvgIcon sx={{ fontSize: 18 }}><path d="M19 9h-4V3H9v6H5l7 7 7-7ZM5 18v2h14v-2H5Z" /></SvgIcon>} sx={{ fontSize: '0.75rem', minHeight: 34, px: 1.4 }} variant="outlined">Export CSV</Button>
-            <Button disabled={csvWorking} onClick={() => fileInputRef.current?.click()} size="small" startIcon={<SvgIcon sx={{ fontSize: 18 }}><path d="M5 17h14v2H5v-2Zm7-14 7 7h-4v5H9v-5H5l7-7Z" /></SvgIcon>} sx={{ fontSize: '0.75rem', minHeight: 34, px: 1.4 }} variant="outlined">Import bulk</Button>
+            <Button disabled={csvJobWorking} onClick={() => void exportEmployees()} size="small" startIcon={<SvgIcon sx={{ fontSize: 18 }}><path d="M19 9h-4V3H9v6H5l7 7 7-7ZM5 18v2h14v-2H5Z" /></SvgIcon>} sx={{ fontSize: '0.75rem', minHeight: 34, px: 1.4 }} variant="outlined">Export CSV</Button>
+            <Button disabled={csvJobWorking} onClick={() => { setCsvJob(null); setCsvDialogMode('IMPORT') }} size="small" startIcon={<SvgIcon sx={{ fontSize: 18 }}><path d="M5 17h14v2H5v-2Zm7-14 7 7h-4v5H9v-5H5l7-7Z" /></SvgIcon>} sx={{ fontSize: '0.75rem', minHeight: 34, px: 1.4 }} variant="outlined">Import bulk</Button>
             <input accept=".csv,text/csv" hidden onChange={(event) => void importEmployees(event)} ref={fileInputRef} type="file" />
             <Button onClick={() => navigate('/employees/new')} size="small" startIcon={<AddEmployeeIcon />} sx={{ fontSize: '0.75rem', minHeight: 34, px: 1.5 }} variant="contained">Add employee</Button>
           </Stack>
         </Stack>
       </Box>
+
+      <Dialog fullWidth maxWidth="sm" onClose={() => { if (!csvJobWorking) setCsvDialogMode(null) }} open={Boolean(csvDialogMode)} slotProps={{ backdrop: { sx: { backdropFilter: 'blur(3px)', bgcolor: 'rgba(20,34,25,.34)' } }, paper: { sx: { borderRadius: 3 } } }}>
+        <DialogTitle sx={{ pb: 1 }}><Typography sx={{ fontSize: '1.08rem', fontWeight: 760 }}>{csvDialogTitle}</Typography><Typography color="text.secondary" sx={{ fontSize: '.72rem', mt: .25 }}>{csvJob ? csvJobCompleted ? `${csvJob.type === 'IMPORT' ? 'Employee records were processed' : 'Your employee export is ready to download'}.` : `${csvJob.type === 'IMPORT' ? 'Importing employee records' : 'Preparing employee data'} safely in the background.` : 'Start with the Playstack template or upload a completed CSV file.'}</Typography></DialogTitle>
+        <DialogContent>
+          {csvDialogMode === 'IMPORT' && !csvJob ? (
+            <Box sx={{ mt: 1 }}>
+              <Box sx={{ bgcolor: '#f3f8f4', border: '1px solid #dce7df', borderRadius: 2.5, mb: 1.5, overflow: 'hidden', px: { xs: 1.5, sm: 2 }, py: 1.4 }}><Box sx={{ display: 'grid', gap: { xs: 1.2, sm: 3 }, gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, position: 'relative' }}>{[{ number: 1, title: 'Download the template', detail: 'Start with the correct employee columns', optional: true }, { number: 2, title: 'Upload your CSV', detail: 'We will create or update each employee', optional: false }].map((step) => <Stack direction="row" key={step.number} spacing={1.1} sx={{ alignItems: 'center', minWidth: 0, position: 'relative', zIndex: 1 }}><Box sx={{ alignItems: 'center', bgcolor: step.number === 2 ? 'primary.main' : '#fff', border: `1px solid ${step.number === 2 ? '#2f7045' : '#b9cdbf'}`, borderRadius: '50%', boxShadow: '0 3px 8px rgba(31,64,43,.08)', color: step.number === 2 ? '#fff' : 'primary.main', display: 'flex', flexShrink: 0, fontSize: '.72rem', fontWeight: 800, height: 36, justifyContent: 'center', width: 36 }}>{step.number}</Box><Box sx={{ minWidth: 0 }}><Stack direction="row" spacing={.65} sx={{ alignItems: 'center' }}><Typography noWrap sx={{ color: '#344c3b', fontSize: '.72rem', fontWeight: 750 }}>{step.title}</Typography>{step.optional && <Chip label="Optional" size="small" sx={{ bgcolor: '#e5ede7', color: '#62736a', fontSize: '.52rem', fontWeight: 700, height: 18 }} />}</Stack><Typography color="text.secondary" noWrap sx={{ fontSize: '.61rem', mt: .18 }}>{step.detail}</Typography></Box></Stack>)}</Box></Box>
+              <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2,1fr)' } }}>
+              <Paper elevation={0} sx={{ ...csvCardHover, bgcolor: '#f7faf8', border: '1px solid #dce6df', borderRadius: 2.5, display: 'flex', flexDirection: 'column', p: 2.2 }}><Box sx={{ bgcolor: '#e6f1e9', borderRadius: 2.25, color: 'primary.main', display: 'grid', height: 50, mb: 1.3, placeItems: 'center', width: 50 }}><SvgIcon sx={{ fontSize: 28 }}><path d="M19 9h-4V3H9v6H5l7 7 7-7ZM5 18v2h14v-2H5Z" /></SvgIcon></Box><Typography sx={{ fontSize: '.86rem', fontWeight: 720 }}>Download template</Typography><Typography color="text.secondary" sx={{ fontSize: '.7rem', lineHeight: 1.55, mt: .45 }}>Use the required columns and example row as your starting point.</Typography><Button fullWidth onClick={downloadCsvTemplate} size="small" sx={{ mt: 'auto', pt: 1.5 }} variant="outlined">Download template</Button></Paper>
+              <Paper elevation={0} sx={{ ...csvCardHover, bgcolor: '#f7faf8', border: '1px solid #dce6df', borderRadius: 2.5, display: 'flex', flexDirection: 'column', p: 2.2 }}><Box sx={{ bgcolor: '#e6f1e9', borderRadius: 2.25, color: 'primary.main', display: 'grid', height: 50, mb: 1.3, placeItems: 'center', width: 50 }}><SvgIcon sx={{ fontSize: 28 }}><path d="M5 17h14v2H5v-2Zm7-14 7 7h-4v5H9v-5H5l7-7Z" /></SvgIcon></Box><Typography sx={{ fontSize: '.86rem', fontWeight: 720 }}>Upload employee CSV</Typography><Typography color="text.secondary" sx={{ fontSize: '.7rem', lineHeight: 1.55, mt: .45 }}>New employees are created; matching employee IDs or emails are updated.</Typography><Button fullWidth onClick={() => fileInputRef.current?.click()} size="small" sx={{ mt: 'auto', pt: 1.5 }} variant="contained">Choose CSV file</Button></Paper>
+              </Box>
+            </Box>
+          ) : csvJob ? (
+            <Box sx={{ mt: 1 }}>
+              <Paper elevation={0} sx={{ ...csvCardHover, background: 'linear-gradient(135deg,#f3f8f4,#fbfcfb)', border: '1px solid #dce6df', borderRadius: 2.5, p: 2.2 }}>
+                {csvJobCompleted ? <Stack direction="row" spacing={1.4} sx={{ alignItems: 'center' }}><Box sx={{ alignItems: 'center', bgcolor: '#dff1e5', borderRadius: '50%', color: '#2f7d4a', display: 'flex', height: 48, justifyContent: 'center', width: 48 }}><SvgIcon sx={{ fontSize: 27 }}><path d="m9 16.17-3.88-3.88L3.7 13.7 9 19 21 7l-1.41-1.41z" /></SvgIcon></Box><Box sx={{ flex: 1 }}><Typography sx={{ color: '#285f3c', fontSize: '.94rem', fontWeight: 760 }}>{csvJob.type === 'IMPORT' ? 'Employees imported successfully' : 'Employee export is ready'}</Typography><Typography color="text.secondary" sx={{ fontSize: '.68rem', mt: .25 }}>{csvJob.processed} records processed</Typography></Box><Chip label="Completed" size="small" sx={{ bgcolor: '#e4f2e8', color: '#34754a', fontSize: '.67rem', fontWeight: 750, height: 25 }} /></Stack> : <Stack direction="row" sx={{ alignItems: 'flex-end', justifyContent: 'space-between' }}><Box><Typography sx={{ color: csvJob.status === 'FAILED' ? '#b63e3e' : 'primary.main', fontSize: '2rem', fontWeight: 800, letterSpacing: '-.05em', lineHeight: 1 }}>{csvJob.progress}%</Typography><Typography color="text.secondary" sx={{ fontSize: '.68rem', mt: .45 }}>{csvJob.status === 'QUEUED' ? 'Waiting to start' : csvJob.status === 'PROCESSING' ? 'Processing records' : 'Job failed'}</Typography></Box><Typography color="text.secondary" sx={{ fontSize: '.7rem' }}>{csvJob.processed} of {csvJob.total || '—'} processed</Typography></Stack>}
+                {!csvJobCompleted && <LinearProgress color={csvJob.status === 'FAILED' ? 'error' : 'primary'} sx={{ bgcolor: '#dce8df', borderRadius: 10, height: 14, mt: 1.8, overflow: 'hidden', '& .MuiLinearProgress-bar': { borderRadius: 10, transition: 'transform 480ms cubic-bezier(.2,.7,.3,1)' } }} value={csvJob.progress} variant="determinate" />}
+              </Paper>
+              {csvJobCompleted && csvJob.type === 'EXPORT' && csvJob.csv && <Paper elevation={0} sx={{ ...csvCardHover, border: '1px solid #dfe7e1', borderRadius: 2.25, mt: 1.5, p: 1.5 }}><Stack direction="row" spacing={1.25} sx={{ alignItems: 'center' }}><Box sx={{ alignItems: 'center', bgcolor: '#e8f2eb', borderRadius: 2, color: '#39744c', display: 'flex', height: 42, justifyContent: 'center', width: 42 }}><SvgIcon><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm1 7V3.5L19.5 9H15ZM8 13h8v1.5H8V13Zm0 3h8v1.5H8V16Zm0-6h4v1.5H8V10Z" /></SvgIcon></Box><Box sx={{ flex: 1, minWidth: 0 }}><Typography noWrap sx={{ fontSize: '.8rem', fontWeight: 720 }}>{csvJob.fileName ?? 'playstack-employees.csv'}</Typography><Stack direction="row" spacing={.7} sx={{ alignItems: 'center', mt: .25 }}><Typography color="text.secondary" sx={{ fontSize: '.65rem' }}>{formatFileSize(new Blob([csvJob.csv]).size)}</Typography><Box sx={{ bgcolor: '#aebbb2', borderRadius: '50%', height: 3, width: 3 }} /><Typography color="text.secondary" sx={{ fontSize: '.65rem' }}>Generated now</Typography></Stack></Box><Chip label="CSV" size="small" sx={{ bgcolor: '#f0f4f1', color: '#5b6d61', fontSize: '.59rem', fontWeight: 720, height: 22 }} /></Stack></Paper>}
+              {csvJob.type === 'IMPORT' && <Box sx={{ mt: 1.5 }}><Typography sx={{ fontSize: '.72rem', fontWeight: 730, mb: .7 }}>Import report</Typography><Box sx={{ display: 'grid', gap: 1, gridTemplateColumns: 'repeat(3,1fr)' }}>{[{ label: 'Created', value: csvJob.created, color: '#34784b' }, { label: 'Updated', value: csvJob.updated, color: '#3f6f9d' }, { label: 'Failed', value: csvJob.failed, color: '#b64242' }].map((item) => <Paper elevation={0} key={item.label} sx={{ ...csvCardHover, border: '1px solid #e3e9e4', borderRadius: 2, p: 1.25, textAlign: 'center' }}><Typography sx={{ color: item.color, fontSize: '1.1rem', fontWeight: 780 }}>{item.value}</Typography><Typography color="text.secondary" sx={{ fontSize: '.62rem' }}>{item.label}</Typography></Paper>)}</Box></Box>}
+              {(csvJob.error || csvJob.errors.length > 0) && <Alert severity="error" sx={{ mt: 1.5 }}>{csvJob.error ?? csvJob.errors.slice(0, 3).join(' · ')}</Alert>}
+            </Box>
+          ) : <Paper elevation={0} sx={{ background: 'linear-gradient(135deg,#f3f8f4,#fbfcfb)', border: '1px solid #dce6df', borderRadius: 2.5, mt: 1, p: 2.2 }}><Stack direction="row" spacing={1.25} sx={{ alignItems: 'center' }}><Box sx={{ alignItems: 'center', bgcolor: '#e5f0e8', borderRadius: 2, color: 'primary.main', display: 'flex', height: 40, justifyContent: 'center', width: 40 }}><SvgIcon><path d="M19 9h-4V3H9v6H5l7 7 7-7ZM5 18v2h14v-2H5Z" /></SvgIcon></Box><Box><Typography sx={{ fontSize: '.86rem', fontWeight: 730 }}>Starting employee export…</Typography><Typography color="text.secondary" sx={{ fontSize: '.68rem', mt: .25 }}>Creating a secure background job for your CSV file.</Typography></Box></Stack><LinearProgress sx={{ borderRadius: 10, height: 8, mt: 1.7, overflow: 'hidden', '& .MuiLinearProgress-bar': { borderRadius: 10 } }} /></Paper>}
+        </DialogContent>
+        {!csvJobWorking && <DialogActions sx={{ bgcolor: '#fafcfb', borderTop: '1px solid #e7ece8', px: 3, py: 1.7 }}>{csvJobCompleted && csvJob?.type === 'EXPORT' && <Button onClick={downloadCompletedExport} startIcon={<SvgIcon><path d="M19 9h-4V3H9v6H5l7 7 7-7ZM5 18v2h14v-2H5Z" /></SvgIcon>} sx={{ boxShadow: '0 5px 13px rgba(47,112,69,.18)', transition: 'box-shadow 180ms ease, transform 180ms ease', '&:hover': { boxShadow: '0 9px 20px rgba(47,112,69,.28)', transform: 'translateY(-2px)' } }} variant="contained">Download CSV</Button>}{csvJobCompleted && csvJob?.type === 'IMPORT' && <Button onClick={downloadImportReport} startIcon={<SvgIcon><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6Zm1 7V3.5L19.5 9H15v-5.5L19.5 9ZM8 13h8v1.5H8V13Zm0 3h8v1.5H8V16Z" /></SvgIcon>} variant="outlined">Download report</Button>}<Button onClick={() => setCsvDialogMode(null)} sx={{ transition: 'background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease', '&:hover': { bgcolor: csvJobCompleted && csvJob?.type !== 'EXPORT' ? undefined : '#f3f7f4', borderColor: '#9fb5a6', boxShadow: '0 5px 12px rgba(31,64,43,.09)', transform: 'translateY(-2px)' } }} variant={csvJobCompleted && csvJob?.type !== 'EXPORT' ? 'contained' : 'outlined'}>{!csvJob ? 'Cancel' : 'Close'}</Button></DialogActions>}
+      </Dialog>
 
       {error && <Alert severity="error">{error}</Alert>}
       <Snackbar anchorOrigin={{ horizontal: 'right', vertical: 'top' }} autoHideDuration={4500} onClose={() => setCsvMessage(null)} open={Boolean(csvMessage)}>

@@ -92,6 +92,8 @@ export const assignManagerSchema = z
   })
   .strict()
 
+export const csvImportJobSchema = z.object({ csv: z.string().min(1).max(10_000_000) }).strict()
+
 export type CreateEmployeeInput = z.infer<typeof createEmployeeSchema>
 export type EmployeeListQuery = z.infer<typeof employeeListQuerySchema>
 export type EmployeeSearchQuery = z.infer<typeof employeeSearchQuerySchema>

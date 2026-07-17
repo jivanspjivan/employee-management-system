@@ -12,6 +12,7 @@ import {
   Menu,
   IconButton,
   Select,
+  Snackbar,
   Stack,
   SvgIcon,
   Table,
@@ -24,7 +25,7 @@ import {
   Typography,
   Skeleton,
 } from '@mui/material'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 import { listDepartmentsRequest } from '../api/departments'
 import { apiRequest } from '../api/client'
@@ -95,6 +96,7 @@ const EmptyState = () => (
 
 export const EmployeeListPage = () => {
   const navigate = useNavigate()
+  const location = useLocation()
   const { employee: currentEmployee } = useAuth()
   const [employees, setEmployees] = useState<EmployeeListItem[]>([])
   const [pagination, setPagination] = useState<PaginationMeta>(initialPagination)
@@ -103,7 +105,10 @@ export const EmployeeListPage = () => {
   const [error, setError] = useState<string | null>(null)
   const [departments, setDepartments] = useState<DepartmentSummary[]>([])
   const [filters, setFilters] = useState<EmployeeListFilters>({})
-  const [csvMessage, setCsvMessage] = useState<string | null>(null)
+  const [csvMessage, setCsvMessage] = useState<string | null>(() => {
+    const state = location.state as { message?: unknown } | null
+    return typeof state?.message === 'string' ? state.message : null
+  })
   const [csvError, setCsvError] = useState<string | null>(null)
   const [csvWorking, setCsvWorking] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -111,6 +116,10 @@ export const EmployeeListPage = () => {
   const [actionAnchor, setActionAnchor] = useState<HTMLElement | null>(null)
   const [actionEmployee, setActionEmployee] = useState<EmployeeListItem | null>(null)
   const [employeeSummary, setEmployeeSummary] = useState({ total: 0, active: 0, inactive: 0 })
+
+  useEffect(() => {
+    if (location.state) navigate(location.pathname, { replace: true, state: null })
+  }, [location.pathname, location.state, navigate])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -328,8 +337,12 @@ export const EmployeeListPage = () => {
       </Box>
 
       {error && <Alert severity="error">{error}</Alert>}
-      {csvMessage && <Alert severity="success" onClose={() => setCsvMessage(null)}>{csvMessage}</Alert>}
-      {csvError && <Alert severity="warning" onClose={() => setCsvError(null)}>{csvError}</Alert>}
+      <Snackbar anchorOrigin={{ horizontal: 'right', vertical: 'top' }} autoHideDuration={4500} onClose={() => setCsvMessage(null)} open={Boolean(csvMessage)}>
+        <Alert elevation={6} onClose={() => setCsvMessage(null)} severity="success" variant="filled">{csvMessage}</Alert>
+      </Snackbar>
+      <Snackbar anchorOrigin={{ horizontal: 'right', vertical: 'top' }} autoHideDuration={4500} onClose={() => setCsvError(null)} open={Boolean(csvError)}>
+        <Alert elevation={6} onClose={() => setCsvError(null)} severity="error" variant="filled">{csvError}</Alert>
+      </Snackbar>
 
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.25} sx={{ alignItems: { md: 'center' }, mt: '8px !important' }}>
         <Typography color="text.secondary" sx={{ fontSize: '0.75rem', fontWeight: 700, mr: 0.5, textTransform: 'uppercase' }}>Filter by</Typography>

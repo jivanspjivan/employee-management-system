@@ -3,7 +3,7 @@ import { Avatar, Badge, Box, ButtonBase, Chip, Divider, Stack, SvgIcon, Typograp
 import { AppNavigation } from './AppNavigation'
 import type { AppNavItem, AppShellUser } from './types'
 
-export const APP_SIDEBAR_WIDTH = 232
+export const APP_SIDEBAR_WIDTH = 204
 
 type AppSidebarProps<Role extends string> = {
   navigation: readonly AppNavItem<Role>[]

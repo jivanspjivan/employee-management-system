@@ -31,7 +31,7 @@ export const listEmployeesRequest = (
   return apiRequest<EmployeeListResponse>(`/employees?${query.toString()}`, { signal })
 }
 
-export type CreateEmployeeCsvInput = {
+export type CreateEmployeeInput = {
   employeeId: string
   name: string
   email: string
@@ -47,7 +47,9 @@ export type CreateEmployeeCsvInput = {
   profileImageUrl?: string
 }
 
-export const createEmployeeRequest = (employee: CreateEmployeeCsvInput) =>
+export type CreateEmployeeCsvInput = CreateEmployeeInput
+
+export const createEmployeeRequest = (employee: CreateEmployeeInput) =>
   apiRequest('/employees', { body: employee, method: 'POST' })
 
 export const updateEmployeeStatusRequest = (employeeId: string, status: EmployeeStatus) =>

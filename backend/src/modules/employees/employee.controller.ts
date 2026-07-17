@@ -6,15 +6,17 @@ import {
   assignManagerSchema,
   createEmployeeSchema,
   employeeIdParamSchema,
+  employeeListQuerySchema,
   updateEmployeeSchema,
   updateOwnProfileSchema,
 } from './employee.schema.js'
 import * as employeeService from './employee.service.js'
 
-export const listEmployees: RequestHandler = async (_request, response) => {
-  const employees = await employeeService.listEmployees()
+export const listEmployees: RequestHandler = async (request, response) => {
+  const query = employeeListQuerySchema.parse(request.query)
+  const { employees, pagination } = await employeeService.listEmployees(query)
 
-  response.status(200).json({ data: { employees } })
+  response.status(200).json({ data: { employees, pagination } })
 }
 
 export const getEmployeeById: RequestHandler = async (request, response) => {

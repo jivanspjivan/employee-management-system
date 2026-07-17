@@ -2,16 +2,50 @@ import bcrypt from 'bcrypt'
 
 import { prisma } from '../../config/database.js'
 import { AppError } from '../../errors/app-error.js'
+import type { Prisma } from '../../generated/prisma/client.js'
 import { EmployeeStatus } from '../../generated/prisma/enums.js'
-import type { CreateEmployeeInput, UpdateEmployeeInput } from './employee.schema.js'
+import type {
+  CreateEmployeeInput,
+  EmployeeListQuery,
+  UpdateEmployeeInput,
+} from './employee.schema.js'
 import { employeeListSelect } from './employee.types.js'
 
-export const listEmployees = () => {
-  return prisma.employee.findMany({
-    where: { isDeleted: false },
-    orderBy: { name: 'asc' },
-    select: employeeListSelect,
-  })
+export const listEmployees = async (query: EmployeeListQuery) => {
+  const { search, departmentId, role, status, sortBy, sortOrder, page, limit } = query
+  const where: Prisma.EmployeeWhereInput = {
+    isDeleted: false,
+    ...(departmentId && { departmentId }),
+    ...(role && { role }),
+    ...(status && { status }),
+    ...(search && {
+      OR: [
+        { name: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+      ],
+    }),
+  }
+
+  const [employees, total] = await Promise.all([
+    prisma.employee.findMany({
+      where,
+      orderBy: { [sortBy]: sortOrder },
+      skip: (page - 1) * limit,
+      take: limit,
+      select: employeeListSelect,
+    }),
+    prisma.employee.count({ where }),
+  ])
+
+  return {
+    employees,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  }
 }
 
 export const getEmployeeById = async (id: string) => {

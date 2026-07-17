@@ -2,6 +2,7 @@ import request from 'supertest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const databaseMock = vi.hoisted(() => ({
+  count: vi.fn(),
   create: vi.fn(),
   departmentFindUnique: vi.fn(),
   findFirst: vi.fn(),
@@ -16,6 +17,7 @@ vi.mock('../src/config/database.js', () => ({
       findUnique: databaseMock.departmentFindUnique,
     },
     employee: {
+      count: databaseMock.count,
       create: databaseMock.create,
       findFirst: databaseMock.findFirst,
       findMany: databaseMock.findMany,
@@ -77,12 +79,14 @@ const createToken = (role: EmployeeRole) =>
 
 describe('employee list API', () => {
   beforeEach(() => {
+    databaseMock.count.mockReset()
     databaseMock.findFirst.mockReset()
     databaseMock.findMany.mockReset()
     databaseMock.findUnique.mockReset()
     authenticatedEmployee.role = EmployeeRole.SUPER_ADMIN
     databaseMock.findUnique.mockImplementation(async () => ({ ...authenticatedEmployee }))
     databaseMock.findMany.mockResolvedValue([listedEmployee])
+    databaseMock.count.mockResolvedValue(1)
     databaseMock.findFirst.mockResolvedValue(listedEmployee)
   })
 
@@ -96,8 +100,73 @@ describe('employee list API', () => {
     expect(response.body.data.employees[0]).toMatchObject({ employeeId: 'ADMIN-001' })
     expect(response.body.data.employees[0]).not.toHaveProperty('passwordHash')
     expect(databaseMock.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { isDeleted: false } }),
+      expect.objectContaining({
+        where: { isDeleted: false },
+        orderBy: { name: 'asc' },
+        skip: 0,
+        take: 10,
+      }),
     )
+    expect(response.body.data.pagination).toEqual({
+      page: 1,
+      limit: 10,
+      total: 1,
+      totalPages: 1,
+    })
+  })
+
+  it('combines optional search, filters, sorting, and pagination', async () => {
+    databaseMock.count.mockResolvedValue(23)
+
+    const response = await request(createApp())
+      .get('/api/employees')
+      .query({
+        search: 'asha',
+        departmentId: 'd4266f98-1abc-49e6-9659-e0bd86e1fa7f',
+        role: 'employee',
+        status: 'active',
+        sortBy: 'joiningDate',
+        sortOrder: 'desc',
+        page: 2,
+        limit: 5,
+      })
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.SUPER_ADMIN)}`)
+
+    expect(response.status).toBe(200)
+    expect(databaseMock.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          isDeleted: false,
+          departmentId: 'd4266f98-1abc-49e6-9659-e0bd86e1fa7f',
+          role: EmployeeRole.EMPLOYEE,
+          status: 'ACTIVE',
+          OR: [
+            { name: { contains: 'asha', mode: 'insensitive' } },
+            { email: { contains: 'asha', mode: 'insensitive' } },
+          ],
+        },
+        orderBy: { joiningDate: 'desc' },
+        skip: 5,
+        take: 5,
+      }),
+    )
+    expect(response.body.data.pagination).toEqual({
+      page: 2,
+      limit: 5,
+      total: 23,
+      totalPages: 5,
+    })
+  })
+
+  it('rejects invalid list query parameters', async () => {
+    const response = await request(createApp())
+      .get('/api/employees')
+      .query({ sortBy: 'salary', page: 0, limit: 101 })
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.SUPER_ADMIN)}`)
+
+    expect(response.status).toBe(400)
+    expect(response.body.error.code).toBe('VALIDATION_ERROR')
+    expect(databaseMock.findMany).not.toHaveBeenCalled()
   })
 
   it('rejects an Employee role', async () => {

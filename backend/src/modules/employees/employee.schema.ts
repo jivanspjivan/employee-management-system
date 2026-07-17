@@ -6,6 +6,33 @@ export const employeeIdParamSchema = z.object({
   id: z.uuid(),
 })
 
+const roleQuerySchema = z
+  .string()
+  .trim()
+  .transform((value) => value.toUpperCase())
+  .pipe(z.enum(EmployeeRole))
+  .optional()
+
+const statusQuerySchema = z
+  .string()
+  .trim()
+  .transform((value) => value.toUpperCase())
+  .pipe(z.enum(EmployeeStatus))
+  .optional()
+
+export const employeeListQuerySchema = z
+  .object({
+    search: z.string().trim().min(1).max(255).optional(),
+    departmentId: z.uuid().optional(),
+    role: roleQuerySchema,
+    status: statusQuerySchema,
+    sortBy: z.enum(['name', 'joiningDate']).default('name'),
+    sortOrder: z.enum(['asc', 'desc']).default('asc'),
+    page: z.coerce.number().int().positive().default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(10),
+  })
+  .strict()
+
 const employeeFields = {
   employeeId: z.string().trim().min(2).max(30),
   name: z.string().trim().min(2).max(120),
@@ -59,4 +86,5 @@ export const assignManagerSchema = z
   .strict()
 
 export type CreateEmployeeInput = z.infer<typeof createEmployeeSchema>
+export type EmployeeListQuery = z.infer<typeof employeeListQuerySchema>
 export type UpdateEmployeeInput = z.infer<typeof updateEmployeeSchema>

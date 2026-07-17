@@ -97,8 +97,38 @@ GET /employees
 Authorization: Bearer {{token}}
 ```
 
-The response contains non-deleted employees ordered by name. Password hashes,
-token versions, and soft-deletion metadata are not returned.
+All query parameters are optional and can be combined:
+
+```text
+search=asha
+departmentId=d4266f98-1abc-49e6-9659-e0bd86e1fa7f
+role=EMPLOYEE
+status=ACTIVE
+sortBy=name|joiningDate
+sortOrder=asc|desc
+page=1
+limit=10
+```
+
+When a filter is omitted, employees of every value for that filter are
+included. Search matches name or email without case sensitivity. Pagination
+defaults to page 1 with 10 records and accepts at most 100 records per page.
+Password hashes, token versions, soft-deletion metadata, and deleted employees
+are never returned.
+
+```json
+{
+  "data": {
+    "employees": [],
+    "pagination": {
+      "page": 1,
+      "limit": 10,
+      "total": 0,
+      "totalPages": 0
+    }
+  }
+}
+```
 
 ### Get an employee
 

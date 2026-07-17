@@ -63,6 +63,16 @@ export const updateEmployeeRequest = (employeeId: string, employee: UpdateEmploy
 export const assignEmployeeManagerRequest = (employeeId: string, reportingManagerId: string | null) =>
   apiRequest(`/employees/${employeeId}/manager`, { body: { reportingManagerId }, method: 'PATCH' })
 
+export type UpdateOwnProfileInput = {
+  email?: string
+  name?: string
+  phone?: string | null
+  profileImageUrl?: string | null
+}
+
+export const updateOwnProfileRequest = (employeeId: string, profile: UpdateOwnProfileInput) =>
+  apiRequest(`/employees/${employeeId}`, { body: profile, method: 'PUT' })
+
 export const updateEmployeeStatusRequest = (employeeId: string, status: EmployeeStatus) =>
   apiRequest(`/employees/${employeeId}`, { body: { status }, method: 'PUT' })
 

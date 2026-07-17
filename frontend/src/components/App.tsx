@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Box, CircularProgress, Paper, Stack, SvgIcon, Typography } from '@mui/material'
+import { Box, CircularProgress, Paper, SvgIcon, Typography } from '@mui/material'
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 
 import { ApiError, apiRequest } from '../api/client'
@@ -11,6 +11,7 @@ import { EmployeeListPage } from '../pages/EmployeeListPage'
 import { EditEmployeePage } from '../pages/EditEmployeePage'
 import { DepartmentsPage } from '../pages/DepartmentsPage'
 import { LoginPage, type LoginCredentials } from '../pages/LoginPage'
+import { ProfilePage } from '../pages/ProfilePage'
 import { AppShell, type AppNavItem } from './layout'
 
 const NavIcon = ({ path }: { path: string }) => <SvgIcon sx={{ fontSize: 20 }}><path d={path} /></SvgIcon>
@@ -65,29 +66,6 @@ const DashboardRoute = () => {
   )
 }
 
-const ProfileRoute = () => {
-  const { employee } = useAuth()
-  if (!employee) return null
-
-  return (
-    <Stack spacing={3}>
-      <Box>
-        <Typography component="h1" variant="h4">My profile</Typography>
-        <Typography color="text.secondary">Your authenticated employee record.</Typography>
-      </Box>
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', p: 3 }}>
-        <Stack spacing={1}>
-          <Typography variant="h6">{employee.name}</Typography>
-          <Typography color="text.secondary">{employee.email}</Typography>
-          <Typography>{employee.designation} · {employee.department.name}</Typography>
-          <Typography variant="body2">Employee ID: {employee.employeeId}</Typography>
-          <Typography variant="body2">Role: {employee.role.replaceAll('_', ' ')}</Typography>
-        </Stack>
-      </Paper>
-    </Stack>
-  )
-}
-
 const PlaceholderRoute = ({ title, description = 'This workspace will be available in the next frontend milestone.' }: { title: string; description?: string }) => (
   <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', p: 4 }}>
     <Typography component="h1" variant="h4">{title}</Typography>
@@ -125,7 +103,7 @@ const AuthenticatedApp = () => {
           path="/dashboard"
           element={employee.role === 'EMPLOYEE' ? <Navigate replace to="/profile" /> : <DashboardRoute />}
         />
-        <Route path="/profile" element={<ProfileRoute />} />
+        <Route path="/profile" element={<ProfilePage />} />
         <Route path="/employees" element={<EmployeeListPage />} />
         <Route path="/employees/new" element={employee.role === 'EMPLOYEE' ? <Navigate replace to="/profile" /> : <CreateEmployeePage />} />
         <Route path="/employees/:id" element={<PlaceholderRoute title="Employee details" />} />

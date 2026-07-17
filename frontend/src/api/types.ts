@@ -35,6 +35,19 @@ export type EmployeeListItem = AuthenticatedEmployee & {
   } | null
 }
 
+export type OrganizationTreeNode = {
+  id: string
+  employeeId: string
+  name: string
+  designation: string
+  role: EmployeeRole
+  status: EmployeeStatus
+  profileImageUrl: string | null
+  reportingManagerId: string | null
+  department: DepartmentSummary
+  directReports: OrganizationTreeNode[]
+}
+
 export type PaginationMeta = {
   page: number
   limit: number

@@ -50,16 +50,18 @@ const authenticatedEmployee = {
   tokenVersion: 0,
 }
 
-const token = signAccessToken({
-  employeeId: managerId,
-  role: EmployeeRole.SUPER_ADMIN,
-  tokenVersion: 0,
-})
+const createToken = (role: EmployeeRole) =>
+  signAccessToken({
+    employeeId: managerId,
+    role,
+    tokenVersion: 0,
+  })
 
 describe('organization tree API', () => {
   beforeEach(() => {
     databaseMock.findMany.mockReset()
     databaseMock.findUnique.mockReset()
+    authenticatedEmployee.role = EmployeeRole.SUPER_ADMIN
     databaseMock.findUnique.mockResolvedValue({ ...authenticatedEmployee })
     databaseMock.findMany.mockResolvedValue([
       {
@@ -90,7 +92,7 @@ describe('organization tree API', () => {
   it('returns employees as a nested reporting tree', async () => {
     const response = await request(createApp())
       .get('/api/organization/tree')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.SUPER_ADMIN)}`)
 
     expect(response.status).toBe(200)
     expect(response.body.data.tree).toHaveLength(1)
@@ -108,6 +110,19 @@ describe('organization tree API', () => {
 
     expect(response.status).toBe(401)
     expect(response.body.error.code).toBe('AUTHENTICATION_REQUIRED')
+    expect(databaseMock.findMany).not.toHaveBeenCalled()
+  })
+
+  it('does not expose the organization tree to Employees', async () => {
+    authenticatedEmployee.role = EmployeeRole.EMPLOYEE
+    databaseMock.findUnique.mockResolvedValue({ ...authenticatedEmployee })
+
+    const response = await request(createApp())
+      .get('/api/organization/tree')
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.EMPLOYEE)}`)
+
+    expect(response.status).toBe(403)
+    expect(response.body.error.code).toBe('INSUFFICIENT_PERMISSIONS')
     expect(databaseMock.findMany).not.toHaveBeenCalled()
   })
 })

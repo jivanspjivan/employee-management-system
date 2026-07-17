@@ -1,6 +1,10 @@
 import type { RequestHandler } from 'express'
 
 import { AppError } from '../../errors/app-error.js'
+import {
+  canEditEmployeeField,
+  isEditableEmployeeField,
+} from '../../config/employee-field-permissions.js'
 import { EmployeeRole } from '../../generated/prisma/enums.js'
 import {
   assignManagerSchema,
@@ -8,7 +12,6 @@ import {
   employeeIdParamSchema,
   employeeListQuerySchema,
   updateEmployeeSchema,
-  updateOwnProfileSchema,
 } from './employee.schema.js'
 import * as employeeService from './employee.service.js'
 
@@ -82,10 +85,22 @@ export const updateEmployee: RequestHandler = async (request, response) => {
     )
   }
 
-  const input =
-    request.employee.role === EmployeeRole.EMPLOYEE
-      ? updateOwnProfileSchema.parse(request.body)
-      : updateEmployeeSchema.parse(request.body)
+  const editScope = isOwnEmployeeProfile ? 'selfEdit' : 'edit'
+  const restrictedFields = Object.keys(request.body as Record<string, unknown>).filter(
+    (field) =>
+      isEditableEmployeeField(field) &&
+      !canEditEmployeeField(request.employee!.role, editScope, field),
+  )
+
+  if (restrictedFields.length > 0) {
+    throw new AppError(
+      403,
+      'FIELD_EDIT_NOT_ALLOWED',
+      `You do not have permission to edit: ${restrictedFields.join(', ')}`,
+    )
+  }
+
+  const input = updateEmployeeSchema.parse(request.body)
 
   if (
     request.employee.role === EmployeeRole.HR_MANAGER &&

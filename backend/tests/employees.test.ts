@@ -427,8 +427,8 @@ describe('update employee API', () => {
       .set('Authorization', `Bearer ${createToken(EmployeeRole.EMPLOYEE)}`)
       .send({ salary: 100000 })
 
-    expect(response.status).toBe(400)
-    expect(response.body.error.code).toBe('VALIDATION_ERROR')
+    expect(response.status).toBe(403)
+    expect(response.body.error.code).toBe('FIELD_EDIT_NOT_ALLOWED')
     expect(databaseMock.update).not.toHaveBeenCalled()
   })
 

@@ -52,6 +52,17 @@ export type CreateEmployeeCsvInput = CreateEmployeeInput
 export const createEmployeeRequest = (employee: CreateEmployeeInput) =>
   apiRequest('/employees', { body: employee, method: 'POST' })
 
+export const getEmployeeRequest = (employeeId: string, signal?: AbortSignal) =>
+  apiRequest<{ data: { employee: EmployeeListItem } }>(`/employees/${employeeId}`, { signal })
+
+export type UpdateEmployeeInput = Omit<CreateEmployeeInput, 'employeeId' | 'password' | 'reportingManagerId'>
+
+export const updateEmployeeRequest = (employeeId: string, employee: UpdateEmployeeInput) =>
+  apiRequest(`/employees/${employeeId}`, { body: employee, method: 'PUT' })
+
+export const assignEmployeeManagerRequest = (employeeId: string, reportingManagerId: string | null) =>
+  apiRequest(`/employees/${employeeId}/manager`, { body: { reportingManagerId }, method: 'PATCH' })
+
 export const updateEmployeeStatusRequest = (employeeId: string, status: EmployeeStatus) =>
   apiRequest(`/employees/${employeeId}`, { body: { status }, method: 'PUT' })
 

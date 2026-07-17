@@ -8,6 +8,7 @@ import { useAuth } from '../auth'
 import { DashboardPage, type DashboardStats } from '../pages/DashboardPage'
 import { CreateEmployeePage } from '../pages/CreateEmployeePage'
 import { EmployeeListPage } from '../pages/EmployeeListPage'
+import { EditEmployeePage } from '../pages/EditEmployeePage'
 import { LoginPage, type LoginCredentials } from '../pages/LoginPage'
 import { AppShell, type AppNavItem } from './layout'
 
@@ -125,9 +126,9 @@ const AuthenticatedApp = () => {
         />
         <Route path="/profile" element={<ProfileRoute />} />
         <Route path="/employees" element={<EmployeeListPage />} />
-        <Route path="/employees/new" element={<CreateEmployeePage />} />
+        <Route path="/employees/new" element={employee.role === 'EMPLOYEE' ? <Navigate replace to="/profile" /> : <CreateEmployeePage />} />
         <Route path="/employees/:id" element={<PlaceholderRoute title="Employee details" />} />
-        <Route path="/employees/:id/edit" element={<PlaceholderRoute title="Edit employee" />} />
+        <Route path="/employees/:id/edit" element={employee.role === 'EMPLOYEE' ? <Navigate replace to="/profile" /> : <EditEmployeePage />} />
         <Route path="/departments/*" element={<PlaceholderRoute title="Departments" />} />
         <Route path="/payroll" element={<PlaceholderRoute title="Payroll" />} />
         <Route path="/performance" element={<PlaceholderRoute title="Performance" />} />

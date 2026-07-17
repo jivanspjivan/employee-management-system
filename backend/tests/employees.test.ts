@@ -324,6 +324,32 @@ describe('direct reportees API', () => {
     expect(response.body.error.code).toBe('EMPLOYEE_NOT_FOUND')
     expect(databaseMock.findMany).not.toHaveBeenCalled()
   })
+
+  it('allows an Employee to view their own direct reportees', async () => {
+    authenticatedEmployee.role = EmployeeRole.EMPLOYEE
+    databaseMock.findUnique.mockResolvedValue({ ...authenticatedEmployee })
+
+    const response = await request(createApp())
+      .get(`/api/employees/${authenticatedEmployee.id}/reportees`)
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.EMPLOYEE)}`)
+
+    expect(response.status).toBe(200)
+    expect(response.body.data.reportees).toHaveLength(1)
+  })
+
+  it("does not allow an Employee to view another employee's direct reportees", async () => {
+    authenticatedEmployee.role = EmployeeRole.EMPLOYEE
+    databaseMock.findUnique.mockResolvedValue({ ...authenticatedEmployee })
+
+    const response = await request(createApp())
+      .get('/api/employees/6bdd0aa2-a313-457f-82f5-f5c568a8fa4c/reportees')
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.EMPLOYEE)}`)
+
+    expect(response.status).toBe(403)
+    expect(response.body.error.code).toBe('INSUFFICIENT_PERMISSIONS')
+    expect(databaseMock.findFirst).not.toHaveBeenCalled()
+    expect(databaseMock.findMany).not.toHaveBeenCalled()
+  })
 })
 
 describe('create employee API', () => {

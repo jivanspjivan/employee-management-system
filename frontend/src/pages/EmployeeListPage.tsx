@@ -97,6 +97,7 @@ export const EmployeeListPage = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const { employee: currentEmployee } = useAuth()
+  const canManageEmployeeData = currentEmployee?.role === 'SUPER_ADMIN' || currentEmployee?.role === 'HR_MANAGER'
   const [employees, setEmployees] = useState<EmployeeListItem[]>([])
   const [pagination, setPagination] = useState<PaginationMeta>(initialPagination)
   const [page, setPage] = useState(1)
@@ -269,6 +270,7 @@ export const EmployeeListPage = () => {
   }
 
   const exportEmployees = async () => {
+    if (!canManageEmployeeData) return
     setCsvError(null)
     setCsvMessage(null)
     setCsvDialogMode('EXPORT')
@@ -283,6 +285,7 @@ export const EmployeeListPage = () => {
   }
 
   const importEmployees = async (event: ChangeEvent<HTMLInputElement>) => {
+    if (!canManageEmployeeData) return
     const file = event.target.files?.[0]
     if (!file) return
     setCsvError(null)
@@ -298,6 +301,7 @@ export const EmployeeListPage = () => {
   }
 
   const downloadCsvTemplate = async () => {
+    if (!canManageEmployeeData) return
     try {
       await downloadEmployeeImportTemplateRequest()
     } catch (requestError) {
@@ -366,15 +370,15 @@ export const EmployeeListPage = () => {
             </Box>
           </Stack>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-            <Button disabled={csvJobWorking} onClick={() => void exportEmployees()} size="small" startIcon={<SvgIcon sx={{ fontSize: 18 }}><path d="M19 9h-4V3H9v6H5l7 7 7-7ZM5 18v2h14v-2H5Z" /></SvgIcon>} sx={{ fontSize: '0.75rem', minHeight: 34, px: 1.4 }} variant="outlined">Export CSV</Button>
+            {canManageEmployeeData && <><Button disabled={csvJobWorking} onClick={() => void exportEmployees()} size="small" startIcon={<SvgIcon sx={{ fontSize: 18 }}><path d="M19 9h-4V3H9v6H5l7 7 7-7ZM5 18v2h14v-2H5Z" /></SvgIcon>} sx={{ fontSize: '0.75rem', minHeight: 34, px: 1.4 }} variant="outlined">Export CSV</Button>
             <Button disabled={csvJobWorking} onClick={() => { setCsvJob(null); setCsvDialogMode('IMPORT') }} size="small" startIcon={<SvgIcon sx={{ fontSize: 18 }}><path d="M5 17h14v2H5v-2Zm7-14 7 7h-4v5H9v-5H5l7-7Z" /></SvgIcon>} sx={{ fontSize: '0.75rem', minHeight: 34, px: 1.4 }} variant="outlined">Import bulk</Button>
             <input accept=".csv,text/csv" hidden onChange={(event) => void importEmployees(event)} ref={fileInputRef} type="file" />
-            <Button onClick={() => navigate('/employees/new')} size="small" startIcon={<AddEmployeeIcon />} sx={{ fontSize: '0.75rem', minHeight: 34, px: 1.5 }} variant="contained">Add employee</Button>
+            <Button onClick={() => navigate('/employees/new')} size="small" startIcon={<AddEmployeeIcon />} sx={{ fontSize: '0.75rem', minHeight: 34, px: 1.5 }} variant="contained">Add employee</Button></>}
           </Stack>
         </Stack>
       </Box>
 
-      <Dialog fullWidth maxWidth="sm" onClose={() => { if (!csvJobWorking) setCsvDialogMode(null) }} open={Boolean(csvDialogMode)} slotProps={{ backdrop: { sx: { backdropFilter: 'blur(3px)', bgcolor: 'rgba(20,34,25,.34)' } }, paper: { sx: { borderRadius: 3 } } }}>
+      <Dialog fullWidth maxWidth="sm" onClose={() => { if (!csvJobWorking) setCsvDialogMode(null) }} open={canManageEmployeeData && Boolean(csvDialogMode)} slotProps={{ backdrop: { sx: { backdropFilter: 'blur(3px)', bgcolor: 'rgba(20,34,25,.34)' } }, paper: { sx: { borderRadius: 3 } } }}>
         <DialogTitle sx={{ pb: 1 }}><Typography sx={{ fontSize: '1.08rem', fontWeight: 760 }}>{csvDialogTitle}</Typography><Typography color="text.secondary" sx={{ fontSize: '.72rem', mt: .25 }}>{csvJob ? csvJobCompleted ? `${csvJob.type === 'IMPORT' ? 'Employee records were processed' : 'Your employee export is ready to download'}.` : `${csvJob.type === 'IMPORT' ? 'Importing employee records' : 'Preparing employee data'} safely in the background.` : 'Start with the Playstack template or upload a completed CSV file.'}</Typography></DialogTitle>
         <DialogContent>
           {csvDialogMode === 'IMPORT' && !csvJob ? (
@@ -459,16 +463,22 @@ export const EmployeeListPage = () => {
             <TableContainer
               sx={{
                 maxHeight: 620,
+                overscrollBehavior: 'contain',
                 overflowX: 'auto',
+                overflowY: 'auto',
+                scrollBehavior: 'smooth',
                 scrollbarColor: '#c5d0c9 transparent',
+                scrollbarGutter: 'stable',
                 scrollbarWidth: 'thin',
+                touchAction: 'pan-x pan-y',
+                WebkitOverflowScrolling: 'touch',
                 '&::-webkit-scrollbar': { height: 7, width: 7 },
                 '&::-webkit-scrollbar-track': { bgcolor: 'transparent' },
                 '&::-webkit-scrollbar-thumb': { bgcolor: '#c5d0c9', border: '2px solid transparent', borderRadius: 8, backgroundClip: 'padding-box' },
                 '&::-webkit-scrollbar-thumb:hover': { bgcolor: '#9fb0a5' },
               }}
             >
-              <Table aria-label="Employee list" stickyHeader sx={{ minWidth: 1460 }}>
+              <Table aria-label="Employee list" stickyHeader sx={{ minWidth: 1460, tableLayout: 'fixed' }}>
                 <TableHead>
                   <TableRow>
                     <TableCell padding="checkbox" sx={{ bgcolor: '#d8e5dc', borderBottom: '1px solid #bdcec2' }}>

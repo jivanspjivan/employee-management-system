@@ -59,6 +59,19 @@ export const getEmployeeById: RequestHandler = async (request, response) => {
 
 export const getDirectReportees: RequestHandler = async (request, response) => {
   const { id } = employeeIdParamSchema.parse(request.params)
+
+  if (!request.employee) {
+    throw new AppError(401, 'AUTHENTICATION_REQUIRED', 'Authentication is required')
+  }
+
+  if (request.employee.role === EmployeeRole.EMPLOYEE && request.employee.id !== id) {
+    throw new AppError(
+      403,
+      'INSUFFICIENT_PERMISSIONS',
+      "You do not have permission to view this employee's reportees",
+    )
+  }
+
   const reportees = await employeeService.getDirectReportees(id)
 
   response.status(200).json({ data: { reportees } })

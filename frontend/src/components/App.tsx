@@ -6,6 +6,7 @@ import { ApiError, apiRequest } from '../api/client'
 import type { EmployeeRole } from '../api/types'
 import { useAuth } from '../auth'
 import { DashboardPage, type DashboardStats } from '../pages/DashboardPage'
+import { EmployeeListPage } from '../pages/EmployeeListPage'
 import { LoginPage, type LoginCredentials } from '../pages/LoginPage'
 import { AppShell, type AppNavItem } from './layout'
 
@@ -122,7 +123,10 @@ const AuthenticatedApp = () => {
           element={employee.role === 'EMPLOYEE' ? <Navigate replace to="/profile" /> : <DashboardRoute />}
         />
         <Route path="/profile" element={<ProfileRoute />} />
-        <Route path="/employees/*" element={<PlaceholderRoute title="Employees" />} />
+        <Route path="/employees" element={<EmployeeListPage />} />
+        <Route path="/employees/new" element={<PlaceholderRoute title="Add employee" />} />
+        <Route path="/employees/:id" element={<PlaceholderRoute title="Employee details" />} />
+        <Route path="/employees/:id/edit" element={<PlaceholderRoute title="Edit employee" />} />
         <Route path="/departments/*" element={<PlaceholderRoute title="Departments" />} />
         <Route path="/payroll" element={<PlaceholderRoute title="Payroll" />} />
         <Route path="/performance" element={<PlaceholderRoute title="Performance" />} />

@@ -26,6 +26,21 @@ export type AuthenticatedEmployee = {
   department: DepartmentSummary
 }
 
+export type EmployeeListItem = AuthenticatedEmployee & {
+  reportingManager: {
+    id: string
+    employeeId: string
+    name: string
+  } | null
+}
+
+export type PaginationMeta = {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+}
+
 export type ApiErrorPayload = {
   error: {
     code: string

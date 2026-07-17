@@ -99,7 +99,10 @@ export const updateEmployee: RequestHandler = async (request, response) => {
     )
   }
 
-  const employee = await employeeService.updateEmployee(id, input)
+  const employee = await employeeService.updateEmployee(id, input, {
+    id: request.employee.id,
+    role: request.employee.role,
+  })
 
   response.status(200).json({
     message: 'Employee updated successfully',

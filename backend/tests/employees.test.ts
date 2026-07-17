@@ -34,6 +34,7 @@ vi.mock('bcrypt', () => ({
 }))
 
 import { createApp } from '../src/app.js'
+import { Prisma } from '../src/generated/prisma/client.js'
 import { EmployeeRole } from '../src/generated/prisma/enums.js'
 import { signAccessToken } from '../src/utils/jwt.js'
 
@@ -51,7 +52,7 @@ const authenticatedEmployee = {
   salary: '0',
   joiningDate: new Date('2026-07-17'),
   status: 'ACTIVE',
-  role: EmployeeRole.SUPER_ADMIN,
+  role: EmployeeRole.SUPER_ADMIN as EmployeeRole,
   profileImageUrl: null,
   departmentId: 'd4266f98-1abc-49e6-9659-e0bd86e1fa7f',
   reportingManagerId: null,
@@ -342,7 +343,7 @@ describe('create employee API', () => {
         }),
       }),
     )
-    expect(databaseMock.create.mock.calls[0][0].data).not.toHaveProperty('password')
+    expect(databaseMock.create.mock.calls[0]![0].data).not.toHaveProperty('password')
   })
 
   it('prevents an HR Manager from assigning the Super Admin role', async () => {
@@ -443,6 +444,103 @@ describe('update employee API', () => {
     expect(response.body.error.code).toBe('INSUFFICIENT_PERMISSIONS')
     expect(databaseMock.update).not.toHaveBeenCalled()
   })
+
+  it('prevents an HR Manager from modifying an existing Super Admin', async () => {
+    authenticatedEmployee.role = EmployeeRole.HR_MANAGER
+    databaseMock.findFirst.mockResolvedValue({
+      id: authenticatedEmployee.id,
+      role: EmployeeRole.SUPER_ADMIN,
+      status: 'ACTIVE',
+    })
+
+    const response = await request(createApp())
+      .put(`/api/employees/${authenticatedEmployee.id}`)
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.HR_MANAGER)}`)
+      .send({ designation: 'Changed by HR' })
+
+    expect(response.status).toBe(403)
+    expect(response.body.error.code).toBe('INSUFFICIENT_PERMISSIONS')
+    expect(databaseMock.update).not.toHaveBeenCalled()
+  })
+
+  it('prevents an administrator from changing their own role', async () => {
+    databaseMock.findFirst.mockResolvedValue({
+      id: authenticatedEmployee.id,
+      role: EmployeeRole.SUPER_ADMIN,
+      status: 'ACTIVE',
+    })
+
+    const response = await request(createApp())
+      .put(`/api/employees/${authenticatedEmployee.id}`)
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.SUPER_ADMIN)}`)
+      .send({ role: EmployeeRole.HR_MANAGER })
+
+    expect(response.status).toBe(400)
+    expect(response.body.error.code).toBe('CANNOT_CHANGE_OWN_ROLE')
+    expect(databaseMock.update).not.toHaveBeenCalled()
+  })
+
+  it('protects the last active Super Admin from demotion', async () => {
+    const otherSuperAdminId = '6bdd0aa2-a313-457f-82f5-f5c568a8fa4c'
+    databaseMock.findFirst.mockResolvedValue({
+      id: otherSuperAdminId,
+      role: EmployeeRole.SUPER_ADMIN,
+      status: 'ACTIVE',
+    })
+    databaseMock.count.mockResolvedValue(1)
+
+    const response = await request(createApp())
+      .put(`/api/employees/${otherSuperAdminId}`)
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.SUPER_ADMIN)}`)
+      .send({ role: EmployeeRole.EMPLOYEE })
+
+    expect(response.status).toBe(409)
+    expect(response.body.error.code).toBe('LAST_SUPER_ADMIN_REQUIRED')
+    expect(databaseMock.update).not.toHaveBeenCalled()
+  })
+})
+
+describe('database constraint error handling', () => {
+  beforeEach(() => {
+    databaseMock.create.mockReset()
+    databaseMock.departmentFindUnique.mockReset()
+    databaseMock.findFirst.mockReset()
+    databaseMock.findUnique.mockReset()
+    authenticatedEmployee.role = EmployeeRole.SUPER_ADMIN
+    databaseMock.findUnique.mockResolvedValue({ ...authenticatedEmployee })
+    databaseMock.findFirst.mockResolvedValue(null)
+    databaseMock.departmentFindUnique.mockResolvedValue({
+      id: 'd4266f98-1abc-49e6-9659-e0bd86e1fa7f',
+    })
+  })
+
+  it('maps a concurrent unique constraint failure to a conflict response', async () => {
+    databaseMock.create.mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+        code: 'P2002',
+        clientVersion: '7.8.0',
+        meta: { target: ['email'] },
+      }),
+    )
+
+    const response = await request(createApp())
+      .post('/api/employees')
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.SUPER_ADMIN)}`)
+      .send({
+        employeeId: 'EMP-002',
+        name: 'Asha Sharma',
+        email: 'asha@example.com',
+        password: 'temporary-password',
+        departmentId: 'd4266f98-1abc-49e6-9659-e0bd86e1fa7f',
+        designation: 'Software Engineer',
+        salary: 75000,
+        joiningDate: '2026-07-18',
+      })
+
+    expect(response.status).toBe(409)
+    expect(response.body.error.code).toBe('EMPLOYEE_ALREADY_EXISTS')
+    expect(response.body.error.details.fields).toEqual(['email'])
+  })
 })
 
 describe('delete employee API', () => {
@@ -513,6 +611,23 @@ describe('delete employee API', () => {
 
     expect(response.status).toBe(404)
     expect(response.body.error.code).toBe('EMPLOYEE_NOT_FOUND')
+  })
+
+  it('protects the last active Super Admin from deletion', async () => {
+    databaseMock.findFirst.mockResolvedValue({
+      id: employeeToDeleteId,
+      role: EmployeeRole.SUPER_ADMIN,
+      status: 'ACTIVE',
+    })
+    databaseMock.count.mockResolvedValue(1)
+
+    const response = await request(createApp())
+      .delete(`/api/employees/${employeeToDeleteId}`)
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.SUPER_ADMIN)}`)
+
+    expect(response.status).toBe(409)
+    expect(response.body.error.code).toBe('LAST_SUPER_ADMIN_REQUIRED')
+    expect(databaseMock.update).not.toHaveBeenCalled()
   })
 })
 

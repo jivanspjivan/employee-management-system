@@ -86,6 +86,17 @@ Authorization: Bearer {{token}}
 GET /health
 ```
 
+## Departments
+
+### List departments
+
+Returns departments alphabetically for authenticated users.
+
+```http
+GET /departments
+Authorization: Bearer {{token}}
+```
+
 ## Employees
 
 ### List employees
@@ -169,8 +180,10 @@ Content-Type: application/json
 ### Update an employee
 
 Super Admin and HR Manager can update employee fields. HR Managers cannot
-assign the Super Admin role. Employees can update only their own name, phone,
-and profile image URL.
+assign the Super Admin role or modify an existing Super Admin. Users cannot
+change their own role, and the last active Super Admin cannot be demoted,
+deactivated, or deleted. Employees can update only their own name, phone, and
+profile image URL.
 
 ```http
 PUT /employees/:id

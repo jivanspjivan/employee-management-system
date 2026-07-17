@@ -7,6 +7,7 @@ import { errorHandler } from './middleware/error-handler.js'
 import { requestLogger } from './middleware/request-logger.js'
 import { authRouter } from './modules/auth/auth.routes.js'
 import { dashboardRouter } from './modules/dashboard/dashboard.routes.js'
+import { departmentRouter } from './modules/departments/department.routes.js'
 import { employeeRouter } from './modules/employees/employee.routes.js'
 import { organizationRouter } from './modules/organization/organization.routes.js'
 
@@ -33,6 +34,7 @@ export const createApp = () => {
 
   app.use('/api/auth', authRouter)
   app.use('/api/dashboard', dashboardRouter)
+  app.use('/api/departments', departmentRouter)
   app.use('/api/employees', employeeRouter)
   app.use('/api/organization', organizationRouter)
 

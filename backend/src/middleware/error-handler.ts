@@ -3,6 +3,7 @@ import { ZodError } from 'zod'
 
 import { logger } from '../config/logger.js'
 import { AppError } from '../errors/app-error.js'
+import { Prisma } from '../generated/prisma/client.js'
 
 export const errorHandler: ErrorRequestHandler = (
   error: unknown,
@@ -50,6 +51,40 @@ export const errorHandler: ErrorRequestHandler = (
       },
     })
     return
+  }
+
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error.code === 'P2002') {
+      response.status(409).json({
+        error: {
+          code: 'EMPLOYEE_ALREADY_EXISTS',
+          message: 'An employee with this employee ID or email already exists',
+          details: { fields: error.meta?.target },
+        },
+      })
+      return
+    }
+
+    if (error.code === 'P2003') {
+      response.status(400).json({
+        error: {
+          code: 'INVALID_REFERENCE',
+          message: 'A referenced record does not exist',
+          details: { field: error.meta?.field_name },
+        },
+      })
+      return
+    }
+
+    if (error.code === 'P2025') {
+      response.status(404).json({
+        error: {
+          code: 'RESOURCE_NOT_FOUND',
+          message: 'The requested record does not exist',
+        },
+      })
+      return
+    }
   }
 
   logger.error('Unhandled API error', {

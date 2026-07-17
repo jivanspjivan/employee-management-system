@@ -133,6 +133,17 @@ frontend/.env.example
 
 Never commit real secrets or local `.env` files.
 
+Backend integration tests require a disposable, migrated PostgreSQL database:
+
+```bash
+cd backend
+TEST_DATABASE_URL=<test database URL> npm run test:integration
+```
+
+The integration suite creates uniquely named records and removes only those
+records after it completes. It is skipped by the regular test command when
+`TEST_DATABASE_URL` is not configured.
+
 ### Neon database setup
 
 Create a Neon PostgreSQL project and copy its pooled and direct connection

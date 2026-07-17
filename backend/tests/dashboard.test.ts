@@ -35,7 +35,7 @@ const authenticatedEmployee = {
   salary: '0',
   joiningDate: new Date('2026-07-17'),
   status: EmployeeStatus.ACTIVE,
-  role: EmployeeRole.SUPER_ADMIN,
+  role: EmployeeRole.SUPER_ADMIN as EmployeeRole,
   profileImageUrl: null,
   departmentId: 'd4266f98-1abc-49e6-9659-e0bd86e1fa7f',
   reportingManagerId: null,

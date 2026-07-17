@@ -3,13 +3,18 @@ import bcrypt from 'bcrypt'
 import { prisma } from '../../config/database.js'
 import { AppError } from '../../errors/app-error.js'
 import type { Prisma } from '../../generated/prisma/client.js'
-import { EmployeeStatus } from '../../generated/prisma/enums.js'
+import { EmployeeRole, EmployeeStatus } from '../../generated/prisma/enums.js'
 import type {
   CreateEmployeeInput,
   EmployeeListQuery,
   UpdateEmployeeInput,
 } from './employee.schema.js'
 import { employeeListSelect } from './employee.types.js'
+
+type ActingEmployee = {
+  id: string
+  role: EmployeeRole
+}
 
 export const listEmployees = async (query: EmployeeListQuery) => {
   const { search, departmentId, role, status, sortBy, sortOrder, page, limit } = query
@@ -120,14 +125,54 @@ export const createEmployee = async (input: CreateEmployeeInput) => {
   })
 }
 
-export const updateEmployee = async (id: string, input: UpdateEmployeeInput) => {
+export const updateEmployee = async (
+  id: string,
+  input: UpdateEmployeeInput,
+  actor: ActingEmployee,
+) => {
   const existingEmployee = await prisma.employee.findFirst({
     where: { id, isDeleted: false },
-    select: { id: true },
+    select: { id: true, role: true, status: true },
   })
 
   if (!existingEmployee) {
     throw new AppError(404, 'EMPLOYEE_NOT_FOUND', 'Employee not found')
+  }
+
+  if (actor.role === EmployeeRole.HR_MANAGER && existingEmployee.role === EmployeeRole.SUPER_ADMIN) {
+    throw new AppError(
+      403,
+      'INSUFFICIENT_PERMISSIONS',
+      'HR Managers cannot modify a Super Admin',
+    )
+  }
+
+  if (actor.id === id && input.role !== undefined && input.role !== actor.role) {
+    throw new AppError(400, 'CANNOT_CHANGE_OWN_ROLE', 'You cannot change your own role')
+  }
+
+  const removesActiveSuperAdmin =
+    existingEmployee.role === EmployeeRole.SUPER_ADMIN &&
+    existingEmployee.status === EmployeeStatus.ACTIVE &&
+    ((input.role !== undefined && input.role !== EmployeeRole.SUPER_ADMIN) ||
+      (input.status !== undefined && input.status !== EmployeeStatus.ACTIVE))
+
+  if (removesActiveSuperAdmin) {
+    const activeSuperAdminCount = await prisma.employee.count({
+      where: {
+        role: EmployeeRole.SUPER_ADMIN,
+        status: EmployeeStatus.ACTIVE,
+        isDeleted: false,
+      },
+    })
+
+    if (activeSuperAdminCount <= 1) {
+      throw new AppError(
+        409,
+        'LAST_SUPER_ADMIN_REQUIRED',
+        'The last active Super Admin cannot be demoted or deactivated',
+      )
+    }
   }
 
   if (input.employeeId || input.email) {
@@ -172,11 +217,32 @@ export const updateEmployee = async (id: string, input: UpdateEmployeeInput) => 
 export const deleteEmployee = async (id: string) => {
   const employee = await prisma.employee.findFirst({
     where: { id, isDeleted: false },
-    select: { id: true },
+    select: { id: true, role: true, status: true },
   })
 
   if (!employee) {
     throw new AppError(404, 'EMPLOYEE_NOT_FOUND', 'Employee not found')
+  }
+
+  if (
+    employee.role === EmployeeRole.SUPER_ADMIN &&
+    employee.status === EmployeeStatus.ACTIVE
+  ) {
+    const activeSuperAdminCount = await prisma.employee.count({
+      where: {
+        role: EmployeeRole.SUPER_ADMIN,
+        status: EmployeeStatus.ACTIVE,
+        isDeleted: false,
+      },
+    })
+
+    if (activeSuperAdminCount <= 1) {
+      throw new AppError(
+        409,
+        'LAST_SUPER_ADMIN_REQUIRED',
+        'The last active Super Admin cannot be deleted',
+      )
+    }
   }
 
   return prisma.employee.update({

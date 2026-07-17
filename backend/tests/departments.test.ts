@@ -2,13 +2,14 @@ import request from 'supertest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const databaseMock = vi.hoisted(() => ({
+  departmentCreate: vi.fn(),
   departmentFindMany: vi.fn(),
   employeeFindUnique: vi.fn(),
 }))
 
 vi.mock('../src/config/database.js', () => ({
   prisma: {
-    department: { findMany: databaseMock.departmentFindMany },
+    department: { create: databaseMock.departmentCreate, findMany: databaseMock.departmentFindMany },
     employee: { findUnique: databaseMock.employeeFindUnique },
   },
 }))
@@ -56,7 +57,7 @@ describe('department list API', () => {
     databaseMock.employeeFindUnique.mockReset()
     databaseMock.employeeFindUnique.mockResolvedValue({ ...employee })
     databaseMock.departmentFindMany.mockResolvedValue([
-      { id: employee.department.id, name: employee.department.name },
+      { _count: { employees: 12 }, id: employee.department.id, name: employee.department.name },
     ])
   })
 
@@ -67,10 +68,31 @@ describe('department list API', () => {
 
     expect(response.status).toBe(200)
     expect(response.body.data.departments).toEqual([
-      { id: employee.department.id, name: 'Administration' },
+      { employeeCount: 12, id: employee.department.id, name: 'Administration' },
     ])
     expect(databaseMock.departmentFindMany).toHaveBeenCalledWith({
       orderBy: { name: 'asc' },
+      select: {
+        _count: { select: { employees: { where: { isDeleted: false } } } },
+        id: true,
+        name: true,
+      },
+    })
+  })
+
+  it('allows an HR Manager to create a department', async () => {
+    const hrToken = signAccessToken({ employeeId: employee.id, role: EmployeeRole.HR_MANAGER, tokenVersion: 0 })
+    databaseMock.departmentCreate.mockResolvedValue({ id: employee.department.id, name: 'People Operations' })
+
+    const response = await request(createApp())
+      .post('/api/departments')
+      .set('Authorization', `Bearer ${hrToken}`)
+      .send({ name: 'People Operations' })
+
+    expect(response.status).toBe(201)
+    expect(response.body.data.department.name).toBe('People Operations')
+    expect(databaseMock.departmentCreate).toHaveBeenCalledWith({
+      data: { name: 'People Operations' },
       select: { id: true, name: true },
     })
   })

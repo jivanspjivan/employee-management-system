@@ -104,7 +104,12 @@ export const EmployeeListPage = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [departments, setDepartments] = useState<DepartmentSummary[]>([])
-  const [filters, setFilters] = useState<EmployeeListFilters>({})
+  const [filters, setFilters] = useState<EmployeeListFilters>(() => {
+    const state = location.state as { departmentId?: unknown } | null
+    const queryDepartmentId = new URLSearchParams(location.search).get('departmentId')
+    if (queryDepartmentId) return { departmentId: queryDepartmentId }
+    return typeof state?.departmentId === 'string' ? { departmentId: state.departmentId } : {}
+  })
   const [csvMessage, setCsvMessage] = useState<string | null>(() => {
     const state = location.state as { message?: unknown } | null
     return typeof state?.message === 'string' ? state.message : null
@@ -118,8 +123,8 @@ export const EmployeeListPage = () => {
   const [employeeSummary, setEmployeeSummary] = useState({ total: 0, active: 0, inactive: 0 })
 
   useEffect(() => {
-    if (location.state) navigate(location.pathname, { replace: true, state: null })
-  }, [location.pathname, location.state, navigate])
+    if (location.state) navigate(`${location.pathname}${location.search}`, { replace: true, state: null })
+  }, [location.pathname, location.search, location.state, navigate])
 
   useEffect(() => {
     const controller = new AbortController()

@@ -5,6 +5,7 @@ export type EmployeeStatus = 'ACTIVE' | 'INACTIVE'
 export type DepartmentSummary = {
   id: string
   name: string
+  employeeCount?: number
 }
 
 export type AuthenticatedEmployee = {

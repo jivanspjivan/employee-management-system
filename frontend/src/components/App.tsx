@@ -9,6 +9,7 @@ import { DashboardPage, type DashboardStats } from '../pages/DashboardPage'
 import { CreateEmployeePage } from '../pages/CreateEmployeePage'
 import { EmployeeListPage } from '../pages/EmployeeListPage'
 import { EditEmployeePage } from '../pages/EditEmployeePage'
+import { DepartmentsPage } from '../pages/DepartmentsPage'
 import { LoginPage, type LoginCredentials } from '../pages/LoginPage'
 import { AppShell, type AppNavItem } from './layout'
 
@@ -87,10 +88,10 @@ const ProfileRoute = () => {
   )
 }
 
-const PlaceholderRoute = ({ title }: { title: string }) => (
+const PlaceholderRoute = ({ title, description = 'This workspace will be available in the next frontend milestone.' }: { title: string; description?: string }) => (
   <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', p: 4 }}>
     <Typography component="h1" variant="h4">{title}</Typography>
-    <Typography color="text.secondary" sx={{ mt: 1 }}>This workspace will be available in the next frontend milestone.</Typography>
+    <Typography color="text.secondary" sx={{ mt: 1 }}>{description}</Typography>
   </Paper>
 )
 
@@ -129,8 +130,8 @@ const AuthenticatedApp = () => {
         <Route path="/employees/new" element={employee.role === 'EMPLOYEE' ? <Navigate replace to="/profile" /> : <CreateEmployeePage />} />
         <Route path="/employees/:id" element={<PlaceholderRoute title="Employee details" />} />
         <Route path="/employees/:id/edit" element={employee.role === 'EMPLOYEE' ? <Navigate replace to="/profile" /> : <EditEmployeePage />} />
-        <Route path="/departments/*" element={<PlaceholderRoute title="Departments" />} />
-        <Route path="/payroll" element={<PlaceholderRoute title="Payroll" />} />
+        <Route path="/departments/*" element={employee.role === 'EMPLOYEE' ? <Navigate replace to="/profile" /> : <DepartmentsPage />} />
+        <Route path="/payroll" element={<PlaceholderRoute description="This page is not yet designed." title="Payroll" />} />
         <Route path="/performance" element={<PlaceholderRoute title="Performance" />} />
         <Route path="/settings" element={<PlaceholderRoute title="Settings" />} />
         <Route path="*" element={<Navigate replace to={defaultPath} />} />

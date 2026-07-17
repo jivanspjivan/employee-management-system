@@ -13,3 +13,10 @@ dashboardRouter.get(
   authorize(EmployeeRole.SUPER_ADMIN, EmployeeRole.HR_MANAGER),
   dashboardController.getDashboardStats,
 )
+
+dashboardRouter.get(
+  '/charts',
+  authenticate,
+  authorize(EmployeeRole.SUPER_ADMIN, EmployeeRole.HR_MANAGER),
+  dashboardController.getDashboardCharts,
+)

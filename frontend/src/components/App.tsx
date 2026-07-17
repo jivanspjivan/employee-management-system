@@ -6,6 +6,7 @@ import { ApiError, apiRequest } from '../api/client'
 import type { EmployeeRole } from '../api/types'
 import { useAuth } from '../auth'
 import { DashboardPage, type DashboardStats } from '../pages/DashboardPage'
+import type { DashboardChartData } from './dashboard/DashboardCharts'
 import { CreateEmployeePage } from '../pages/CreateEmployeePage'
 import { EmployeeListPage } from '../pages/EmployeeListPage'
 import { EmployeeDetailsPage } from '../pages/EmployeeDetailsPage'
@@ -39,7 +40,9 @@ const DashboardRoute = () => {
   const navigate = useNavigate()
   const { employee } = useAuth()
   const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [charts, setCharts] = useState<DashboardChartData | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [chartsError, setChartsError] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
@@ -48,9 +51,14 @@ const DashboardRoute = () => {
         if (active) setStats(response.data.stats)
       })
       .catch((requestError: unknown) => {
-        if (active) {
-          setError(requestError instanceof Error ? requestError.message : 'Unable to load dashboard')
-        }
+        if (active) setError(requestError instanceof Error ? requestError.message : 'Unable to load dashboard')
+      })
+    apiRequest<{ data: { charts: DashboardChartData } }>('/dashboard/charts')
+      .then((response) => {
+        if (active) setCharts(response.data.charts)
+      })
+      .catch((requestError: unknown) => {
+        if (active) setChartsError(requestError instanceof Error ? requestError.message : 'Unable to load dashboard charts')
       })
     return () => {
       active = false
@@ -59,6 +67,9 @@ const DashboardRoute = () => {
 
   return (
     <DashboardPage
+      charts={charts}
+      chartsError={chartsError}
+      chartsLoading={!charts && !chartsError}
       error={error}
       loading={!stats && !error}
       onAddDepartment={() => navigate('/departments/new')}

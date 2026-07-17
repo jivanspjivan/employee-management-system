@@ -9,6 +9,7 @@ import {
   Typography,
 } from '@mui/material';
 import type { ReactNode } from 'react';
+import { DashboardCharts, type DashboardChartData } from '../components/dashboard/DashboardCharts';
 
 export interface DashboardStats {
   totalEmployees: number;
@@ -19,6 +20,9 @@ export interface DashboardStats {
 
 export interface DashboardPageProps {
   stats: DashboardStats | null;
+  charts?: DashboardChartData | null;
+  chartsLoading?: boolean;
+  chartsError?: string | null;
   loading?: boolean;
   error?: string | null;
   onAddEmployee?: () => void;
@@ -93,7 +97,7 @@ function StatCard({ label, value, accent, tint, icon, loading, trend, trendLabel
           {loading ? (
             <Skeleton height={40} width={70} />
           ) : (
-            <Typography component="p" sx={{ color: 'text.primary', fontSize: { xs: '2rem', lg: '2.25rem' }, fontWeight: 780, letterSpacing: '-0.04em', lineHeight: 1 }}>
+            <Typography component="p" sx={{ color: '#17291d', fontSize: { xs: '2.2rem', lg: '2.5rem' }, fontWeight: 820, letterSpacing: '-0.055em', lineHeight: .95 }}>
               {value.toLocaleString()}
             </Typography>
           )}
@@ -111,14 +115,14 @@ function StatCard({ label, value, accent, tint, icon, loading, trend, trendLabel
           )}
         </Box>
         {loading ? (
-          <Skeleton height={58} sx={{ borderRadius: 2 }} variant="rounded" width={140} />
+          <Skeleton height={64} sx={{ borderRadius: 2 }} variant="rounded" width={152} />
         ) : (
           <Box>
             <Typography color="text.secondary" sx={{ fontSize: '0.58rem', fontWeight: 650, letterSpacing: '0.04em', mb: 0.25, textAlign: 'right', textTransform: 'uppercase' }}>
               Monthly trend
             </Typography>
             <Box sx={{ bgcolor: trendBackground, borderRadius: 2, display: 'flex', px: 0.6, py: 0.35 }}>
-              <Box component="svg" aria-hidden viewBox="0 0 140 48" sx={{ height: 48, overflow: 'visible', width: 140 }}>
+              <Box component="svg" aria-hidden viewBox="0 0 140 48" sx={{ height: 54, overflow: 'visible', width: 152 }}>
                 <line stroke={trendColor} strokeOpacity="0.14" strokeWidth="1" x1="0" x2="140" y1="42" y2="42" />
                 <polyline fill="none" points={sparkline} stroke={trendColor} strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.6" />
               </Box>
@@ -158,6 +162,9 @@ const AddDepartmentIcon = () => (
 
 export function DashboardPage({
   stats,
+  charts = null,
+  chartsLoading = false,
+  chartsError = null,
   loading = false,
   error = null,
   onAddEmployee,
@@ -176,6 +183,8 @@ export function DashboardPage({
     weekday: 'long',
     year: 'numeric',
   }).format(new Date());
+  const currentHour = new Date().getHours();
+  const greeting = currentHour < 12 ? 'Good morning' : currentHour < 17 ? 'Good afternoon' : 'Good evening';
 
   return (
     <Box component="main" sx={{ p: { xs: 2, sm: 3, lg: 4 } }}>
@@ -189,7 +198,7 @@ export function DashboardPage({
             {today}
           </Typography>
           <Typography component="h1" sx={{ fontWeight: 750, letterSpacing: '-0.035em', mt: 0.5 }} variant="h4">
-            Hi 👋{welcomeName ? `, ${welcomeName.split(' ')[0]}` : ''}
+            {greeting} 👋{welcomeName ? `, ${welcomeName.split(' ')[0]}` : ''}
           </Typography>
           <Typography color="text.secondary" sx={{ mt: 0.5 }}>
             Here&apos;s what&apos;s happening across Playstack today.
@@ -236,6 +245,7 @@ export function DashboardPage({
         <StatCard accent="#4d8761" icon={<InactiveIcon />} label="Inactive employees" loading={loading} sparkline="1,12 22,17 45,14 68,28 91,23 116,38 139,33" tint="#fafcfb" trend="2%" trendLabel="vs last month" trendTone="negative" value={values.inactiveEmployees} />
         <StatCard accent="#4d8761" icon={<DepartmentIcon />} label="Departments" loading={loading} sparkline="1,27 22,25 45,26 68,24 91,25 116,23 139,24" tint="#fafcfb" trend="0%" trendLabel="vs last month" trendTone="neutral" value={values.departmentCount} />
       </Box>
+      <DashboardCharts charts={charts} error={chartsError} loading={chartsLoading} />
     </Box>
   );
 }

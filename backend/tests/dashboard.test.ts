@@ -3,8 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const databaseMock = vi.hoisted(() => ({
   departmentCount: vi.fn(),
+  departmentFindMany: vi.fn(),
   employeeGroupBy: vi.fn(),
   findUnique: vi.fn(),
+  queryRaw: vi.fn(),
 }))
 
 const cacheMock = vi.hoisted(() => ({
@@ -19,7 +21,11 @@ vi.mock('../src/config/cache.js', () => ({
 
 vi.mock('../src/config/database.js', () => ({
   prisma: {
-    department: { count: databaseMock.departmentCount },
+    $queryRaw: databaseMock.queryRaw,
+    department: {
+      count: databaseMock.departmentCount,
+      findMany: databaseMock.departmentFindMany,
+    },
     employee: {
       groupBy: databaseMock.employeeGroupBy,
       findUnique: databaseMock.findUnique,
@@ -69,17 +75,35 @@ const createToken = (role: EmployeeRole) =>
 describe('dashboard statistics API', () => {
   beforeEach(() => {
     databaseMock.departmentCount.mockReset()
+    databaseMock.departmentFindMany.mockReset()
     databaseMock.employeeGroupBy.mockReset()
     databaseMock.findUnique.mockReset()
+    databaseMock.queryRaw.mockReset()
     cacheMock.get.mockReset().mockResolvedValue(null)
     cacheMock.set.mockReset().mockResolvedValue(undefined)
     authenticatedEmployee.role = EmployeeRole.SUPER_ADMIN
     databaseMock.findUnique.mockImplementation(async () => ({ ...authenticatedEmployee }))
-    databaseMock.employeeGroupBy.mockResolvedValue([
-      { status: EmployeeStatus.ACTIVE, _count: { _all: 9 } },
-      { status: EmployeeStatus.INACTIVE, _count: { _all: 3 } },
-    ])
+    databaseMock.employeeGroupBy.mockImplementation(async ({ by }: { by: string[] }) =>
+      by.includes('role')
+        ? [
+            { role: EmployeeRole.EMPLOYEE, _count: { _all: 9 } },
+            { role: EmployeeRole.HR_MANAGER, _count: { _all: 2 } },
+            { role: EmployeeRole.SUPER_ADMIN, _count: { _all: 1 } },
+          ]
+        : [
+            { status: EmployeeStatus.ACTIVE, _count: { _all: 9 } },
+            { status: EmployeeStatus.INACTIVE, _count: { _all: 3 } },
+          ],
+    )
     databaseMock.departmentCount.mockResolvedValue(4)
+    databaseMock.departmentFindMany.mockResolvedValue([
+      { id: 'department-1', name: 'Engineering', _count: { employees: 7 } },
+      { id: 'department-2', name: 'People', _count: { employees: 5 } },
+    ])
+    databaseMock.queryRaw.mockResolvedValue([
+      { month: '2026-06', count: 2 },
+      { month: '2026-07', count: 3 },
+    ])
   })
 
   it('returns employee and department counts to a Super Admin', async () => {
@@ -140,6 +164,38 @@ describe('dashboard statistics API', () => {
       .set('Authorization', `Bearer ${createToken(EmployeeRole.HR_MANAGER)}`)
 
     expect(response.status).toBe(200)
+  })
+
+  it('returns aggregated workforce chart data', async () => {
+    const response = await request(createApp())
+      .get('/api/dashboard/charts')
+      .set('Authorization', `Bearer ${createToken(EmployeeRole.SUPER_ADMIN)}`)
+
+    expect(response.status).toBe(200)
+    expect(response.body.data.charts).toEqual({
+      statusDistribution: [
+        { status: EmployeeStatus.ACTIVE, count: 9 },
+        { status: EmployeeStatus.INACTIVE, count: 3 },
+      ],
+      roleDistribution: [
+        { role: EmployeeRole.EMPLOYEE, count: 9 },
+        { role: EmployeeRole.HR_MANAGER, count: 2 },
+        { role: EmployeeRole.SUPER_ADMIN, count: 1 },
+      ],
+      departmentDistribution: [
+        { departmentId: 'department-1', name: 'Engineering', count: 7 },
+        { departmentId: 'department-2', name: 'People', count: 5 },
+      ],
+      joiningTrend: [
+        { month: '2026-06', count: 2 },
+        { month: '2026-07', count: 3 },
+      ],
+    })
+    expect(cacheMock.set).toHaveBeenCalledWith(
+      'dashboard:charts:v1',
+      response.body.data.charts,
+      300,
+    )
   })
 
   it('prevents an Employee from viewing organization-wide statistics', async () => {

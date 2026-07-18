@@ -1,7 +1,7 @@
 import type { RequestHandler } from 'express'
 
 import { AppError } from '../../errors/app-error.js'
-import { loginSchema } from './auth.schema.js'
+import { forgotPasswordSchema, loginSchema, passwordResetRequestParamSchema } from './auth.schema.js'
 import * as authService from './auth.service.js'
 
 export const login: RequestHandler = async (request, response) => {
@@ -31,4 +31,21 @@ export const me: RequestHandler = async (request, response) => {
 
   const employee = await authService.getCurrentEmployee(request.employee.id)
   response.status(200).json({ data: { employee } })
+}
+
+export const forgotPassword: RequestHandler = async (request, response) => {
+  const input = forgotPasswordSchema.parse(request.body)
+  await authService.requestPasswordReset(input)
+  response.status(202).json({ message: 'If an active account matches that email, an administrator will receive the request.' })
+}
+
+export const listPasswordResetRequests: RequestHandler = async (_request, response) => {
+  const requests = await authService.listPasswordResetRequests()
+  response.status(200).json({ data: { requests } })
+}
+
+export const resolvePasswordResetRequest: RequestHandler = async (request, response) => {
+  const { id } = passwordResetRequestParamSchema.parse(request.params)
+  const result = await authService.resolvePasswordResetRequest(id)
+  response.status(200).json({ message: 'Temporary password generated', data: result })
 }

@@ -72,7 +72,14 @@ export const AppShell = <Role extends string>({
       </Drawer>
 
       <Box sx={{ display: 'flex', flex: 1, flexDirection: 'column', minWidth: 0 }}>
-        <AppHeader onNavigate={onNavigate} onOpenMenu={() => setMobileOpen(true)} title={title} user={user} />
+        <AppHeader
+          notificationCount={navigation.find((item) => item.path === '/notifications')?.badge ?? 0}
+          notificationPath={navigation.some((item) => item.path === '/notifications' && (!item.roles || item.roles.includes(user.role))) ? '/notifications' : undefined}
+          onNavigate={onNavigate}
+          onOpenMenu={() => setMobileOpen(true)}
+          title={title}
+          user={user}
+        />
         <Box component="main" sx={{ flex: 1, p: { xs: 2, sm: 3, lg: 4 } }}>
           <Box
             key={activePath}

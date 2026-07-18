@@ -85,16 +85,18 @@ export const EditEmployeePage = () => {
     ]).then(([employeeResponse, departmentResponse, managerResponse]) => {
       const employee = employeeResponse.data.employee
       const managerId = employee.reportingManagerId ?? ''
+      const eligibleManagers = managerResponse.data.employees.filter((manager) => manager.id !== employee.id && (manager.role === 'SUPER_ADMIN' || manager.role === 'HR_MANAGER'))
+      const eligibleManagerId = eligibleManagers.some((manager) => manager.id === managerId) ? managerId : ''
       setTarget(employee)
       setOriginalManagerId(managerId)
       setValues({
         departmentId: employee.departmentId, designation: employee.designation, email: employee.email,
         employeeId: employee.employeeId, joiningDate: employee.joiningDate.slice(0, 10), name: employee.name,
-        phone: employee.phone ?? '', profileImageUrl: employee.profileImageUrl ?? '', reportingManagerId: managerId,
+        phone: employee.phone ?? '', profileImageUrl: employee.profileImageUrl ?? '', reportingManagerId: eligibleManagerId,
         role: employee.role, salary: employee.salary, status: employee.status,
       })
       setDepartments(departmentResponse.data.departments)
-      setManagers(managerResponse.data.employees.filter((manager) => manager.id !== employee.id))
+      setManagers(eligibleManagers)
     }).catch((error: unknown) => {
       if (!controller.signal.aborted) setLoadError(error instanceof Error ? error.message : 'Unable to load employee')
     }).finally(() => {
@@ -106,7 +108,7 @@ export const EditEmployeePage = () => {
   const blocked = currentEmployee?.role === 'HR_MANAGER' && target?.role === 'SUPER_ADMIN'
   const roles = useMemo<EmployeeRole[]>(() => currentEmployee?.role === 'SUPER_ADMIN' ? ['EMPLOYEE', 'HR_MANAGER', 'SUPER_ADMIN'] : ['EMPLOYEE', 'HR_MANAGER'], [currentEmployee?.role])
   const editingSelf = currentEmployee?.id === target?.id
-  const change = (field: keyof Values, value: string) => { setValues((current) => ({ ...current, [field]: value })); setErrors({}) }
+  const change = (field: keyof Values, value: string) => { setValues((current) => ({ ...current, [field]: value, ...(field === 'role' ? { reportingManagerId: '' } : {}) })); setErrors({}) }
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
@@ -142,7 +144,7 @@ export const EditEmployeePage = () => {
     {blocked && <Alert severity="warning">HR Managers cannot modify a Super Admin account.</Alert>}
     <Snackbar anchorOrigin={{ horizontal: 'right', vertical: 'top' }} autoHideDuration={4500} onClose={() => setToast(null)} open={Boolean(toast)}><Alert elevation={6} onClose={() => setToast(null)} severity="error" variant="filled">{toast}</Alert></Snackbar>
     <Paper elevation={0} sx={cardSx}>{heading('Basic information', 'Personal and contact details used across the employee directory.')}<Box sx={{ display: 'grid', gap: 2.25, gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' }, p: { xs: 2, md: 3 } }}>{input('employeeId', 'Employee ID *')}{input('name', 'Full name *')}{input('email', 'Work email *', { type: 'email' })}{input('phone', 'Phone number')}{input('profileImageUrl', 'Profile image URL', { sx: { ...inputSx, gridColumn: { md: '1 / -1' } } })}</Box></Paper>
-    <Paper elevation={0} sx={cardSx}>{heading('Employment details', 'Update team, access level, status, and reporting structure.', true)}<Box sx={{ display: 'grid', gap: 2.25, gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' }, p: { xs: 2, md: 3 } }}>{select('departmentId', 'Department *', departments.map((department) => <MenuItem key={department.id} value={department.id}>{department.name}</MenuItem>))}{input('designation', 'Designation *')}{input('salary', 'Annual salary (₹) *', { inputProps: { min: 0 }, type: 'number' })}{input('joiningDate', 'Joining date *', { InputLabelProps: { shrink: true }, type: 'date' })}{select('role', 'Role *', roles.map((role) => <MenuItem key={role} value={role}>{role.replaceAll('_', ' ')}</MenuItem>))}{select('status', 'Status *', [<MenuItem key="ACTIVE" value="ACTIVE">Active</MenuItem>, <MenuItem key="INACTIVE" value="INACTIVE">Inactive</MenuItem>])}<Box sx={{ gridColumn: { md: '1 / -1' } }}>{select('reportingManagerId', 'Reporting manager', [<MenuItem key="none" value=""><em>No reporting manager</em></MenuItem>, ...managers.map((manager) => <MenuItem key={manager.id} value={manager.id}>{manager.name} · {manager.designation}</MenuItem>)])}</Box></Box></Paper>
+    <Paper elevation={0} sx={cardSx}>{heading('Employment details', 'Update team, access level, status, and reporting structure.', true)}<Box sx={{ display: 'grid', gap: 2.25, gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' }, p: { xs: 2, md: 3 } }}>{select('departmentId', 'Department *', departments.map((department) => <MenuItem key={department.id} value={department.id}>{department.name}</MenuItem>))}{input('designation', 'Designation *')}{input('salary', 'Annual salary (₹) *', { inputProps: { min: 0 }, type: 'number' })}{input('joiningDate', 'Joining date *', { InputLabelProps: { shrink: true }, type: 'date' })}{select('role', 'Role *', roles.map((role) => <MenuItem key={role} value={role}>{role.replaceAll('_', ' ')}</MenuItem>))}{select('status', 'Status *', [<MenuItem key="ACTIVE" value="ACTIVE">Active</MenuItem>, <MenuItem key="INACTIVE" value="INACTIVE">Inactive</MenuItem>])}<Box sx={{ gridColumn: { md: '1 / -1' } }}>{select('reportingManagerId', 'Reporting manager', [<MenuItem key="none" value=""><em>No reporting manager</em></MenuItem>, ...managers.map((manager) => <MenuItem key={manager.id} value={manager.id}>{manager.name} · {manager.role === 'SUPER_ADMIN' ? 'Super Admin' : 'HR Manager'}</MenuItem>)])}<FormHelperText>Only an active HR Manager or Super Admin can be selected.</FormHelperText></Box></Box></Paper>
     <Paper elevation={0} sx={{ alignItems: 'center', bgcolor: 'rgba(255,255,255,.94)', border: '1px solid #dce5de', borderRadius: 2.5, bottom: 12, boxShadow: '0 8px 22px rgba(25,60,37,.09)', display: 'flex', justifyContent: 'flex-end', p: 1.5, position: 'sticky', zIndex: 2 }}><Button onClick={() => navigate('/employees')} sx={{ mr: 1 }}>Cancel</Button><Button disabled={blocked || saving} startIcon={saving ? <CircularProgress color="inherit" size={17} /> : <SaveIcon />} sx={{ boxShadow: '0 7px 16px rgba(47,112,69,.24)', fontWeight: 700, minHeight: 44, px: 2.6 }} type="submit" variant="contained">{saving ? 'Saving changes…' : 'Save changes'}</Button></Paper>
   </Stack>
 }

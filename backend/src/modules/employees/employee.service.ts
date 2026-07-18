@@ -131,12 +131,16 @@ export const createEmployee = async (input: CreateEmployeeInput) => {
 
   if (input.reportingManagerId) {
     const manager = await prisma.employee.findFirst({
-      where: { id: input.reportingManagerId, isDeleted: false },
-      select: { id: true },
+      where: { id: input.reportingManagerId, isDeleted: false, status: EmployeeStatus.ACTIVE },
+      select: { id: true, role: true },
     })
 
     if (!manager) {
       throw new AppError(400, 'REPORTING_MANAGER_NOT_FOUND', 'Reporting manager does not exist')
+    }
+
+    if (manager.role !== EmployeeRole.SUPER_ADMIN && manager.role !== EmployeeRole.HR_MANAGER) {
+      throw new AppError(400, 'INVALID_REPORTING_MANAGER_ROLE', 'Reporting manager must be an HR Manager or Super Admin')
     }
   }
 
@@ -319,12 +323,16 @@ export const assignManager = async (employeeId: string, reportingManagerId: stri
 
   if (reportingManagerId) {
     let manager = await prisma.employee.findFirst({
-      where: { id: reportingManagerId, isDeleted: false },
-      select: { id: true, reportingManagerId: true },
+      where: { id: reportingManagerId, isDeleted: false, status: EmployeeStatus.ACTIVE },
+      select: { id: true, reportingManagerId: true, role: true },
     })
 
     if (!manager) {
       throw new AppError(400, 'REPORTING_MANAGER_NOT_FOUND', 'Reporting manager does not exist')
+    }
+
+    if (manager.role !== EmployeeRole.SUPER_ADMIN && manager.role !== EmployeeRole.HR_MANAGER) {
+      throw new AppError(400, 'INVALID_REPORTING_MANAGER_ROLE', 'Reporting manager must be an HR Manager or Super Admin')
     }
 
     const visitedEmployeeIds = new Set<string>()
@@ -342,7 +350,7 @@ export const assignManager = async (employeeId: string, reportingManagerId: stri
 
       manager = await prisma.employee.findFirst({
         where: { id: manager.reportingManagerId, isDeleted: false },
-        select: { id: true, reportingManagerId: true },
+        select: { id: true, reportingManagerId: true, role: true },
       })
     }
   }

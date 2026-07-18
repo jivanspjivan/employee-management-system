@@ -10,11 +10,13 @@ type AppHeaderProps<Role extends string> = {
   user: AppShellUser<Role>
   onNavigate: (path: string) => void
   onOpenMenu: () => void
+  notificationCount?: number
+  notificationPath?: string
 }
 
 const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase()
 
-export const AppHeader = <Role extends string>({ title, user, onNavigate, onOpenMenu }: AppHeaderProps<Role>) => {
+export const AppHeader = <Role extends string>({ title, user, onNavigate, onOpenMenu, notificationCount = 0, notificationPath }: AppHeaderProps<Role>) => {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<EmployeeSearchResult[]>([])
   const [hasMore, setHasMore] = useState(false)
@@ -115,11 +117,11 @@ export const AppHeader = <Role extends string>({ title, user, onNavigate, onOpen
         Filter
       </Button>
       <Stack direction="row" spacing={1} sx={{ alignItems: 'center', ml: 'auto' }}>
-        <IconButton aria-label="Notifications">
-          <Badge color="error" variant="dot">
+        {notificationPath && <IconButton aria-label="Open notifications" onClick={() => onNavigate(notificationPath)}>
+          <Badge badgeContent={notificationCount} color="error" max={99}>
             <SvgIcon><path d="M12 22a2.01 2.01 0 0 0 2-2h-4a2 2 0 0 0 2 2Zm6-6v-5c0-3.08-1.64-5.64-4.5-6.32V4a1.5 1.5 0 0 0-3 0v.68C7.63 5.36 6 7.91 6 11v5l-2 2v1h16v-1l-2-2Z" /></SvgIcon>
           </Badge>
-        </IconButton>
+        </IconButton>}
         <Box sx={{ display: { xs: 'none', sm: 'block' }, textAlign: 'right' }}>
           <Typography noWrap sx={{ fontSize: '0.82rem', fontWeight: 650 }}>
             {user.name}

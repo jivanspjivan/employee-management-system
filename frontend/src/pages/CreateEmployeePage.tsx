@@ -110,7 +110,7 @@ export const CreateEmployeePage = () => {
       listEmployeesRequest(1, 100, { status: 'ACTIVE' }, controller.signal),
     ]).then(([departmentResponse, employeeResponse]) => {
       setDepartments(departmentResponse.data.departments)
-      setManagers(employeeResponse.data.employees)
+      setManagers(employeeResponse.data.employees.filter((employee) => employee.role === 'SUPER_ADMIN' || employee.role === 'HR_MANAGER'))
     }).catch((error: unknown) => {
       if (!controller.signal.aborted) setOptionsError(error instanceof Error ? error.message : 'Unable to load form options')
     }).finally(() => {
@@ -125,7 +125,7 @@ export const CreateEmployeePage = () => {
   )
 
   const updateValue = (field: keyof FormValues, value: string) => {
-    setValues((current) => ({ ...current, [field]: value }))
+    setValues((current) => ({ ...current, [field]: value, ...(field === 'role' ? { reportingManagerId: '' } : {}) }))
     setErrors((current) => ({ ...current, [field]: undefined }))
   }
 
@@ -229,8 +229,9 @@ export const CreateEmployeePage = () => {
           <Box sx={{ gridColumn: { md: '1 / -1' } }}>
             {select('reportingManagerId', 'Reporting manager', [
               <MenuItem key="none" value=""><em>No reporting manager</em></MenuItem>,
-              ...managers.map((manager) => <MenuItem key={manager.id} value={manager.id}>{manager.name} · {manager.designation}</MenuItem>),
+              ...managers.map((manager) => <MenuItem key={manager.id} value={manager.id}>{manager.name} · {manager.role === 'SUPER_ADMIN' ? 'Super Admin' : 'HR Manager'}</MenuItem>),
             ])}
+            <FormHelperText>Only an active HR Manager or Super Admin can be selected.</FormHelperText>
           </Box>
         </Box>
       </Paper>

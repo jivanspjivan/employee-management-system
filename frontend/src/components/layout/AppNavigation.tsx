@@ -56,6 +56,25 @@ export const AppNavigation = <Role extends string>({
             <Typography sx={{ fontSize: '0.9rem', fontWeight: isActive ? 700 : 500 }}>
               {item.label}
             </Typography>
+            {Boolean(item.badge) && (
+              <Box
+                aria-label={`${item.badge} pending`}
+                sx={{
+                  bgcolor: isActive ? 'rgba(255,255,255,.22)' : 'error.main',
+                  borderRadius: 10,
+                  color: '#fff',
+                  fontSize: '.68rem',
+                  fontWeight: 800,
+                  ml: 'auto',
+                  minWidth: 22,
+                  px: .7,
+                  py: .2,
+                  textAlign: 'center',
+                }}
+              >
+                {item.badge! > 99 ? '99+' : item.badge}
+              </Box>
+            )}
           </ButtonBase>
         )
       })}

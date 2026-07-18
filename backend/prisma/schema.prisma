@@ -53,6 +53,7 @@ model Employee {
   department       Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
   reportingManager Employee?  @relation("ReportingHierarchy", fields: [reportingManagerId], references: [id], onDelete: SetNull)
   directReports    Employee[] @relation("ReportingHierarchy")
+  passwordResetRequests PasswordResetRequest[]
 
   @@index([departmentId])
   @@index([reportingManagerId])
@@ -61,4 +62,17 @@ model Employee {
   @@index([isDeleted])
   @@index([name])
   @@map("employees")
+}
+
+model PasswordResetRequest {
+  id          String    @id @default(uuid()) @db.Uuid
+  employeeId  String    @db.Uuid
+  requestedAt DateTime  @default(now())
+  resolvedAt  DateTime?
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId, resolvedAt])
+  @@index([requestedAt])
+  @@map("password_reset_requests")
 }

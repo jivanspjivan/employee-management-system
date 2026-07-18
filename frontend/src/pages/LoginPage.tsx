@@ -4,6 +4,10 @@ import {
   Box,
   Button,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   IconButton,
   InputAdornment,
   Paper,
@@ -12,6 +16,9 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
+
+import { forgotPasswordRequest } from '../auth/auth-api'
+import { ApiError } from '../api/client'
 
 export interface LoginCredentials {
   email: string
@@ -101,10 +108,31 @@ export function LoginPage({ onLogin, loading = false, error = null }: LoginPageP
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [forgotOpen, setForgotOpen] = useState(false)
+  const [resetEmail, setResetEmail] = useState('')
+  const [resetLoading, setResetLoading] = useState(false)
+  const [resetMessage, setResetMessage] = useState<{ severity: 'error' | 'success'; text: string } | null>(null)
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     void onLogin({ email: email.trim(), password })
+  }
+
+  const requestReset = async () => {
+    if (!/^\S+@\S+\.\S+$/.test(resetEmail.trim())) {
+      setResetMessage({ severity: 'error', text: 'Enter a valid work email address.' })
+      return
+    }
+    setResetLoading(true)
+    setResetMessage(null)
+    try {
+      const response = await forgotPasswordRequest(resetEmail.trim().toLowerCase())
+      setResetMessage({ severity: 'success', text: response.message })
+    } catch (requestError) {
+      setResetMessage({ severity: 'error', text: requestError instanceof ApiError ? requestError.message : 'Unable to submit the request.' })
+    } finally {
+      setResetLoading(false)
+    }
   }
 
   return (
@@ -156,11 +184,24 @@ export function LoginPage({ onLogin, loading = false, error = null }: LoginPageP
           <Stack spacing={2.2}>
             <TextField autoComplete="email" autoFocus disabled={loading} fullWidth label="Email address" onChange={(event) => setEmail(event.target.value)} required slotProps={{ input: { startAdornment: <InputAdornment position="start"><Box sx={{ color: 'text.secondary', display: 'flex' }}><MailIcon /></Box></InputAdornment> } }} sx={inputStyles} type="email" value={email} />
             <TextField autoComplete="current-password" disabled={loading} fullWidth label="Password" onChange={(event) => setPassword(event.target.value)} required slotProps={{ input: { startAdornment: <InputAdornment position="start"><Box sx={{ color: 'text.secondary', display: 'flex' }}><LockIcon /></Box></InputAdornment>, endAdornment: <InputAdornment position="end"><IconButton aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword((current) => !current)} size="small"><EyeIcon hidden={showPassword} /></IconButton></InputAdornment> } }} sx={inputStyles} type={showPassword ? 'text' : 'password'} value={password} />
+            <Button onClick={() => { setResetEmail(email); setResetMessage(null); setForgotOpen(true) }} size="small" sx={{ alignSelf: 'flex-end', mb: .5, mt: '.25rem !important' }} type="button" variant="text">Forgot password?</Button>
             <Button disabled={loading} endIcon={!loading ? <ArrowIcon /> : undefined} size="large" startIcon={loading ? <CircularProgress color="inherit" size={18} /> : undefined} sx={{ boxShadow: '0 8px 18px rgba(47,112,69,.22)', fontWeight: 720, minHeight: 48, mt: .4, '& .MuiButton-endIcon': { transition: 'transform 180ms ease' }, '&:hover': { boxShadow: '0 11px 24px rgba(47,112,69,.28)', transform: 'translateY(-1px)', '& .MuiButton-endIcon': { transform: 'translateX(4px)' } } }} type="submit" variant="contained">{loading ? 'Signing in…' : 'Sign in'}</Button>
           </Stack>
           <Typography color="text.secondary" sx={{ fontSize: '.68rem', mt: 3, textAlign: 'center' }}>Protected by secure, role-based authentication</Typography>
         </Stack>
       </Paper>
+      <Dialog fullWidth maxWidth="xs" onClose={() => !resetLoading && setForgotOpen(false)} open={forgotOpen}>
+        <DialogTitle>Request a password reset</DialogTitle>
+        <DialogContent>
+          <Typography color="text.secondary" sx={{ fontSize: '.84rem', mb: 2 }}>A Super Admin will receive your request and provide you with a temporary password.</Typography>
+          {resetMessage && <Alert severity={resetMessage.severity} sx={{ mb: 2 }}>{resetMessage.text}</Alert>}
+          <TextField autoFocus disabled={resetLoading || resetMessage?.severity === 'success'} fullWidth label="Work email" onChange={(event) => setResetEmail(event.target.value)} type="email" value={resetEmail} />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button disabled={resetLoading} onClick={() => setForgotOpen(false)}>Close</Button>
+          {resetMessage?.severity !== 'success' && <Button disabled={resetLoading} onClick={() => void requestReset()} variant="contained">{resetLoading ? 'Submitting…' : 'Send request'}</Button>}
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }

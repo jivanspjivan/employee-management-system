@@ -38,7 +38,7 @@ This is more than a basic CRUD application. Security and business rules are enfo
 
 ## 🚀 Key features
 
-- **Authentication:** JWT login, logout with token invalidation, password hashing, protected routes, and automatic session-expiry handling
+- **Authentication:** JWT login, logout with token invalidation, password hashing, protected routes, automatic session-expiry handling, and admin-mediated password recovery
 - **Role-based access:** Distinct permissions for Super Admin, HR Manager, and Employee
 - **Employee management:** Create, view, edit, and soft-delete employee records with validation
 - **Organization hierarchy:** Assign managers, view direct reports, explore a nested reporting tree, and prevent circular reporting
@@ -89,6 +89,7 @@ Authorization is enforced on the server. Frontend route guards and conditional c
 - The last active Super Admin cannot be demoted, deactivated, or deleted.
 - An employee cannot report to themselves or create a circular reporting chain.
 - Soft-deleted employees are excluded from standard queries and their sessions are invalidated.
+- Forgot-password notifications are retained with pending and completed states. A Super Admin generates a one-time temporary password, which is shown only once and shared privately with the employee.
 
 ## 🖼️ Application preview
 
@@ -111,6 +112,14 @@ Authorization is enforced on the server. Frontend route guards and conditional c
 | Edit employee | Change reporting manager |
 | --- | --- |
 | ![Edit employee form](docs/screenshots/ems-emp-edit.png) | ![Change an employee's reporting manager](docs/screenshots/ems-reporting-manager-change.png) |
+
+### Forgot-password workflow
+
+Employees can submit a recovery notification from the login page. A Super Admin receives the notification, generates a one-time temporary password, and shares it privately with the employee. Only the password hash is stored, while the notification history retains both pending and completed records.
+
+| Submit recovery notification | Confirmation and admin handoff |
+| --- | --- |
+| ![Employee submitting a forgot-password notification](docs/screenshots/ems-forget-password-01.png) | ![Password recovery notification submitted for administrator action](docs/screenshots/ems-forget-password-02.png) |
 
 ### Organization and departments
 

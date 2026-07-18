@@ -5,6 +5,7 @@ export type AppNavItem<Role extends string = string> = {
   path: string
   icon?: ReactNode
   roles?: readonly Role[]
+  badge?: number
 }
 
 export type AppShellUser<Role extends string = string> = {

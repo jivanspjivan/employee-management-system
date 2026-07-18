@@ -706,7 +706,7 @@ describe('assign reporting manager API', () => {
       }
 
       if (where.id === managerId) {
-        return { id: managerId, reportingManagerId: null }
+        return { id: managerId, reportingManagerId: null, role: EmployeeRole.HR_MANAGER }
       }
 
       return null
@@ -788,7 +788,7 @@ describe('assign reporting manager API', () => {
       }
 
       if (where.id === managerId) {
-        return { id: managerId, reportingManagerId: employeeId }
+        return { id: managerId, reportingManagerId: employeeId, role: EmployeeRole.HR_MANAGER }
       }
 
       return null

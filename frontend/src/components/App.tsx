@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
-import { Box, CircularProgress, Paper, SvgIcon, Typography } from '@mui/material'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Alert, Box, CircularProgress, Paper, Snackbar, SvgIcon, Typography } from '@mui/material'
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 
 import { ApiError, apiRequest } from '../api/client'
 import type { EmployeeRole } from '../api/types'
 import { useAuth } from '../auth'
+import { listPasswordResetRequests } from '../auth/auth-api'
 import { DashboardPage, type DashboardStats } from '../pages/DashboardPage'
 import type { DashboardChartData } from './dashboard/DashboardCharts'
 import { CreateEmployeePage } from '../pages/CreateEmployeePage'
@@ -15,6 +16,7 @@ import { DepartmentsPage } from '../pages/DepartmentsPage'
 import { LoginPage, type LoginCredentials } from '../pages/LoginPage'
 import { ProfilePage } from '../pages/ProfilePage'
 import { OrganizationPage } from '../pages/OrganizationPage'
+import { PasswordResetRequestsPage } from '../pages/PasswordResetRequestsPage'
 import { AppShell, type AppNavItem } from './layout'
 
 const NavIcon = ({ path }: { path: string }) => <SvgIcon sx={{ fontSize: 20 }}><path d={path} /></SvgIcon>
@@ -25,7 +27,7 @@ const navigation: readonly AppNavItem<EmployeeRole>[] = [
   { icon: <NavIcon path="M12 7V3H2v18h20V7H12Zm-6 12H4v-2h2v2Zm0-4H4v-2h2v2Zm0-4H4V9h2v2Zm4 8H8v-2h2v2Zm0-4H8v-2h2v2Zm10 4h-8V9h8v10Z" />, label: 'Departments', path: '/departments', roles: ['SUPER_ADMIN', 'HR_MANAGER'] },
   { icon: <NavIcon path="M15 4a3 3 0 1 0-6 0 3 3 0 0 0 2 2.82V9H6a2 2 0 0 0-2 2v2.18A3 3 0 1 0 6 13v-2h5v2.18a3 3 0 1 0 2 0V11h5v2.18a3 3 0 1 0 2 0V11a2 2 0 0 0-2-2h-5V6.82A3 3 0 0 0 15 4Z" />, label: 'Organization', path: '/organization', roles: ['SUPER_ADMIN', 'HR_MANAGER'] },
   { icon: <NavIcon path="M21 4H3c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h18c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2Zm0 14H3v-6h18v6Zm0-10H3V6h18v2Z" />, label: 'Payroll', path: '/payroll', roles: ['SUPER_ADMIN', 'HR_MANAGER'] },
-  { icon: <NavIcon path="m3.5 18.49 6-6.01 4 4L22 6.92 20.59 5.5 13.5 13.48l-4-4L2 16.99l1.5 1.5Z" />, label: 'Performance', path: '/performance' },
+  { icon: <NavIcon path="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6v-5a7 7 0 0 0-6-6.92V3a1 1 0 0 0-2 0v1.08A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z" />, label: 'Notifications', path: '/notifications', roles: ['SUPER_ADMIN'] },
   { icon: <NavIcon path="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4Zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4Z" />, label: 'My profile', path: '/profile' },
   { icon: <NavIcon path="M19.43 12.98c.04-.32.07-.65.07-.98s-.03-.66-.08-.98l2.11-1.65-2-3.46-2.49 1a7.2 7.2 0 0 0-1.69-.98L15 3.27h-4l-.4 2.66c-.61.25-1.17.59-1.69.98l-2.49-1-2 3.46 2.11 1.65c-.04.32-.08.66-.08.98s.03.66.08.98l-2.11 1.65 2 3.46 2.49-1c.52.4 1.08.73 1.69.98l.4 2.66h4l.4-2.66c.61-.25 1.17-.58 1.69-.98l2.49 1 2-3.46-2.15-1.65ZM13 15.5A3.5 3.5 0 1 1 13 8a3.5 3.5 0 0 1 0 7.5Z" />, label: 'Settings', path: '/settings' },
 ]
@@ -91,6 +93,35 @@ const AuthenticatedApp = () => {
   const { employee, logout } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
+  const [pendingResetCount, setPendingResetCount] = useState(0)
+  const [resetNotificationOpen, setResetNotificationOpen] = useState(false)
+  const previousResetCount = useRef(0)
+
+  useEffect(() => {
+    if (employee?.role !== 'SUPER_ADMIN') return
+    let active = true
+
+    const checkPasswordResetRequests = async () => {
+      try {
+        const response = await listPasswordResetRequests()
+        if (!active) return
+        const count = response.data.requests.filter((request) => !request.resolvedAt).length
+        if (count > previousResetCount.current) setResetNotificationOpen(true)
+        previousResetCount.current = count
+        setPendingResetCount(count)
+      } catch {
+        // The main application remains usable if the notification check fails.
+      }
+    }
+
+    void checkPasswordResetRequests()
+    const interval = window.setInterval(() => void checkPasswordResetRequests(), 30_000)
+    return () => { active = false; window.clearInterval(interval) }
+  }, [employee?.role, location.pathname])
+
+  const navigationWithNotifications = useMemo(() => navigation.map((item) => (
+    item.path === '/notifications' ? { ...item, badge: pendingResetCount } : item
+  )), [pendingResetCount])
 
   if (!employee) return null
   const defaultPath = employee.role === 'EMPLOYEE' ? '/profile' : '/dashboard'
@@ -101,7 +132,7 @@ const AuthenticatedApp = () => {
   return (
     <AppShell
       activePath={location.pathname}
-      navigation={navigation}
+      navigation={navigationWithNotifications}
       onLogout={() => void logout()}
       onNavigate={navigate}
       title={currentTitle}
@@ -112,6 +143,11 @@ const AuthenticatedApp = () => {
         role: employee.role,
       }}
     >
+      <Snackbar anchorOrigin={{ horizontal: 'right', vertical: 'top' }} autoHideDuration={7000} onClose={() => setResetNotificationOpen(false)} open={resetNotificationOpen}>
+        <Alert action={<Typography component="button" onClick={() => { setResetNotificationOpen(false); navigate('/notifications') }} sx={{ bgcolor: 'transparent', border: 0, color: 'inherit', cursor: 'pointer', font: 'inherit', fontWeight: 800 }}>View</Typography>} onClose={() => setResetNotificationOpen(false)} severity="warning" variant="filled">
+          {pendingResetCount} new {pendingResetCount === 1 ? 'notification' : 'notifications'}
+        </Alert>
+      </Snackbar>
       <Routes>
         <Route
           path="/dashboard"
@@ -124,8 +160,8 @@ const AuthenticatedApp = () => {
         <Route path="/employees/:id/edit" element={employee.role === 'EMPLOYEE' ? <Navigate replace to="/profile" /> : <EditEmployeePage />} />
         <Route path="/departments/*" element={employee.role === 'EMPLOYEE' ? <Navigate replace to="/profile" /> : <DepartmentsPage />} />
         <Route path="/organization" element={employee.role === 'EMPLOYEE' ? <Navigate replace to="/profile" /> : <OrganizationPage />} />
+        <Route path="/notifications" element={employee.role === 'SUPER_ADMIN' ? <PasswordResetRequestsPage /> : <Navigate replace to={defaultPath} />} />
         <Route path="/payroll" element={<PlaceholderRoute description="This page is not yet designed." title="Payroll" />} />
-        <Route path="/performance" element={<PlaceholderRoute title="Performance" />} />
         <Route path="/settings" element={<PlaceholderRoute title="Settings" />} />
         <Route path="*" element={<Navigate replace to={defaultPath} />} />
       </Routes>

@@ -462,23 +462,19 @@ export const EmployeeListPage = () => {
             )}
             <TableContainer
               sx={{
-                maxHeight: 620,
-                overscrollBehavior: 'contain',
                 overflowX: 'auto',
-                overflowY: 'auto',
-                scrollBehavior: 'smooth',
+                overflowY: 'visible',
                 scrollbarColor: '#c5d0c9 transparent',
                 scrollbarGutter: 'stable',
                 scrollbarWidth: 'thin',
-                touchAction: 'pan-x pan-y',
-                WebkitOverflowScrolling: 'touch',
+                touchAction: 'pan-x',
                 '&::-webkit-scrollbar': { height: 7, width: 7 },
                 '&::-webkit-scrollbar-track': { bgcolor: 'transparent' },
                 '&::-webkit-scrollbar-thumb': { bgcolor: '#c5d0c9', border: '2px solid transparent', borderRadius: 8, backgroundClip: 'padding-box' },
                 '&::-webkit-scrollbar-thumb:hover': { bgcolor: '#9fb0a5' },
               }}
             >
-              <Table aria-label="Employee list" stickyHeader sx={{ minWidth: 1460, tableLayout: 'fixed' }}>
+              <Table aria-label="Employee list" sx={{ minWidth: 1460, tableLayout: 'fixed' }}>
                 <TableHead>
                   <TableRow>
                     <TableCell padding="checkbox" sx={{ bgcolor: '#d8e5dc', borderBottom: '1px solid #bdcec2' }}>

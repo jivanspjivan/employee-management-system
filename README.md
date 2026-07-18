@@ -127,6 +127,14 @@ Employees can submit a recovery notification from the login page. A Super Admin 
 | --- | --- |
 | ![Expandable organizational reporting tree](docs/screenshots/emp-organization-tree.png) | ![Department directory](docs/screenshots/emp-all-departent.png) |
 
+### Responsive mobile experience
+
+The mobile interface is optimized for compact 320–375px screens with touch-friendly navigation, focused employee tables, stacked notification cards, compact profile summaries, and responsive organization and department views.
+
+| Mobile departments | Mobile organization tree |
+| --- | --- |
+| ![Responsive department directory on mobile](docs/screenshots/ems-mobile-department.png) | ![Responsive organization hierarchy on mobile](docs/screenshots/ems-mobile-organization.png) |
+
 <details>
 <summary><strong>View more application screenshots</strong></summary>
 

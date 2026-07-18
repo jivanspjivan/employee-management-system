@@ -27,6 +27,7 @@ import {
   TableHead,
   TableRow,
   TableSortLabel,
+  TextField,
   Typography,
   Skeleton,
 } from '@mui/material'
@@ -125,6 +126,16 @@ export const EmployeeListPage = () => {
   const [actionAnchor, setActionAnchor] = useState<HTMLElement | null>(null)
   const [actionEmployee, setActionEmployee] = useState<EmployeeListItem | null>(null)
   const [employeeSummary, setEmployeeSummary] = useState({ total: 0, active: 0, inactive: 0 })
+  const [mobileSearch, setMobileSearch] = useState(filters.search ?? '')
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const search = mobileSearch.trim() || undefined
+      setPage(1)
+      setFilters((current) => current.search === search ? current : { ...current, search })
+    }, 350)
+    return () => window.clearTimeout(timer)
+  }, [mobileSearch])
 
   useEffect(() => {
     if (location.state) navigate(`${location.pathname}${location.search}`, { replace: true, state: null })
@@ -137,6 +148,7 @@ export const EmployeeListPage = () => {
     if (search || departmentId) {
       setPage(1)
       setFilters((current) => ({ ...current, departmentId, search }))
+      if (search) setMobileSearch(search)
     }
   }, [location.search])
 
@@ -351,11 +363,11 @@ export const EmployeeListPage = () => {
         : `${csvJob.type === 'IMPORT' ? 'Importing' : 'Exporting'} employees`
 
   return (
-    <Stack spacing={2.5}>
+    <Stack spacing={{ xs: 1.5, sm: 2.5 }}>
       <Box>
         <Typography component="h1" sx={{ fontWeight: 750, letterSpacing: '-0.03em' }} variant="h4">Employees</Typography>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ alignItems: { sm: 'flex-end' }, justifyContent: 'space-between', mt: 0.9 }}>
-          <Stack direction="row" spacing={5.5} sx={{ alignItems: 'flex-start' }}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ xs: 1.25, sm: 2 }} sx={{ alignItems: { sm: 'flex-end' }, justifyContent: 'space-between', mt: { xs: .55, sm: .9 } }}>
+          <Stack direction="row" spacing={{ xs: 3.5, sm: 5.5 }} sx={{ alignItems: 'flex-start', bgcolor: { xs: '#f5f9f6', sm: 'transparent' }, border: { xs: '1px solid #e1e9e3', sm: 0 }, borderRadius: { xs: 2, sm: 0 }, px: { xs: 1.5, sm: 0 }, py: { xs: 1.1, sm: 0 } }}>
             <Box>
               <Typography sx={{ color: 'text.primary', fontSize: '1.08rem', fontWeight: 800, lineHeight: 1 }}>{employeeSummary.total.toLocaleString()}</Typography>
               <Typography sx={{ color: '#8b9890', fontSize: '0.68rem', fontWeight: 400, mt: 0.35 }}>Total</Typography>
@@ -369,11 +381,15 @@ export const EmployeeListPage = () => {
               <Typography sx={{ color: '#8b9890', fontSize: '0.68rem', fontWeight: 400, mt: 0.35 }}>Inactive</Typography>
             </Box>
           </Stack>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-            {canManageEmployeeData && <><Button disabled={csvJobWorking} onClick={() => void exportEmployees()} size="small" startIcon={<SvgIcon sx={{ fontSize: 18 }}><path d="M19 9h-4V3H9v6H5l7 7 7-7ZM5 18v2h14v-2H5Z" /></SvgIcon>} sx={{ fontSize: '0.75rem', minHeight: 34, px: 1.4 }} variant="outlined">Export CSV</Button>
-            <Button disabled={csvJobWorking} onClick={() => { setCsvJob(null); setCsvDialogMode('IMPORT') }} size="small" startIcon={<SvgIcon sx={{ fontSize: 18 }}><path d="M5 17h14v2H5v-2Zm7-14 7 7h-4v5H9v-5H5l7-7Z" /></SvgIcon>} sx={{ fontSize: '0.75rem', minHeight: 34, px: 1.4 }} variant="outlined">Import bulk</Button>
+          <Stack spacing={{ xs: .75, sm: 0 }} sx={{ minWidth: { xs: '100%', sm: 'auto' } }}>
+            {canManageEmployeeData && <><Button fullWidth onClick={() => navigate('/employees/new')} size="small" startIcon={<AddEmployeeIcon />} sx={{ display: { xs: 'inline-flex', sm: 'none' }, fontSize: '.8rem', minHeight: 38 }} variant="contained">Add employee</Button>
+            <Stack direction="row" spacing={.75}>
+            <Button disabled={csvJobWorking} onClick={() => void exportEmployees()} size="small" startIcon={<SvgIcon sx={{ fontSize: 18 }}><path d="M19 9h-4V3H9v6H5l7 7 7-7ZM5 18v2h14v-2H5Z" /></SvgIcon>} sx={{ flex: { xs: 1, sm: 'initial' }, fontSize: '0.75rem', minHeight: 34, px: 1.4 }} variant="outlined">Export CSV</Button>
+            <Button disabled={csvJobWorking} onClick={() => { setCsvJob(null); setCsvDialogMode('IMPORT') }} size="small" startIcon={<SvgIcon sx={{ fontSize: 18 }}><path d="M5 17h14v2H5v-2Zm7-14 7 7h-4v5H9v-5H5l7-7Z" /></SvgIcon>} sx={{ flex: { xs: 1, sm: 'initial' }, fontSize: '0.75rem', minHeight: 34, px: 1.4 }} variant="outlined">Import bulk</Button>
+            <Button onClick={() => navigate('/employees/new')} size="small" startIcon={<AddEmployeeIcon />} sx={{ display: { xs: 'none', sm: 'inline-flex' }, fontSize: '0.75rem', minHeight: 34, px: 1.5, whiteSpace: 'nowrap' }} variant="contained">Add employee</Button>
+            </Stack>
             <input accept=".csv,text/csv" hidden onChange={(event) => void importEmployees(event)} ref={fileInputRef} type="file" />
-            <Button onClick={() => navigate('/employees/new')} size="small" startIcon={<AddEmployeeIcon />} sx={{ fontSize: '0.75rem', minHeight: 34, px: 1.5 }} variant="contained">Add employee</Button></>}
+            </>}
           </Stack>
         </Stack>
       </Box>
@@ -412,39 +428,41 @@ export const EmployeeListPage = () => {
         <Alert elevation={6} onClose={() => setCsvError(null)} severity="error" variant="filled">{csvError}</Alert>
       </Snackbar>
 
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.25} sx={{ alignItems: { md: 'center' }, mt: '8px !important' }}>
-        <Typography color="text.secondary" sx={{ fontSize: '0.75rem', fontWeight: 700, mr: 0.5, textTransform: 'uppercase' }}>Filter by</Typography>
-        <Select displayEmpty onChange={(event) => updateFilter('status', event.target.value)} size="small" sx={{ bgcolor: 'background.paper', fontSize: '0.78rem', height: 34, minWidth: 145 }} value={filters.status ?? ''}>
+      <Box sx={{ columnGap: { xs: .75, md: 1.25 }, display: 'grid', gridTemplateColumns: { xs: 'repeat(2,minmax(0,1fr))', md: 'auto 145px 210px 155px auto' }, mt: { xs: '0 !important', md: '8px !important' }, rowGap: { xs: 1, md: 1.25 } }}>
+        <TextField onChange={(event) => setMobileSearch(event.target.value)} placeholder="Search name or email" size="small" slotProps={{ htmlInput: { 'aria-label': 'Search employees by name or email' } }} sx={{ display: { md: 'none' }, gridColumn: '1 / -1', '& .MuiOutlinedInput-root': { bgcolor: 'background.paper', fontSize: '.8rem', height: 38 } }} type="search" value={mobileSearch} />
+        <Typography color="text.secondary" sx={{ alignSelf: 'center', display: { xs: 'none', md: 'block' }, fontSize: '0.75rem', fontWeight: 700, mr: 0.5, textTransform: 'uppercase' }}>Filter by</Typography>
+        <Select displayEmpty onChange={(event) => updateFilter('status', event.target.value)} size="small" sx={{ bgcolor: 'background.paper', fontSize: '0.75rem', height: 34, minWidth: 0, width: '100%' }} value={filters.status ?? ''}>
           <MenuItem value="">All statuses</MenuItem>
           <MenuItem value={'ACTIVE' satisfies EmployeeStatus}>Active</MenuItem>
           <MenuItem value={'INACTIVE' satisfies EmployeeStatus}>Inactive</MenuItem>
         </Select>
-        <Select displayEmpty onChange={(event) => updateFilter('departmentId', event.target.value)} size="small" sx={{ bgcolor: 'background.paper', fontSize: '0.78rem', height: 34, minWidth: 210 }} value={filters.departmentId ?? ''}>
+        <Select displayEmpty onChange={(event) => updateFilter('departmentId', event.target.value)} size="small" sx={{ bgcolor: 'background.paper', fontSize: '0.75rem', height: 34, minWidth: 0, width: '100%' }} value={filters.departmentId ?? ''}>
           <MenuItem value="">All departments</MenuItem>
           {departments.map((department) => <MenuItem key={department.id} value={department.id}>{department.name}</MenuItem>)}
         </Select>
-        <Select displayEmpty onChange={(event) => updateFilter('role', event.target.value)} size="small" sx={{ bgcolor: 'background.paper', fontSize: '0.78rem', height: 34, minWidth: 155 }} value={filters.role ?? ''}>
+        <Select displayEmpty onChange={(event) => updateFilter('role', event.target.value)} size="small" sx={{ bgcolor: 'background.paper', fontSize: '0.75rem', height: 34, minWidth: 0, width: '100%' }} value={filters.role ?? ''}>
           <MenuItem value="">All roles</MenuItem>
           <MenuItem value={'EMPLOYEE' satisfies EmployeeRole}>Employee</MenuItem>
           <MenuItem value={'HR_MANAGER' satisfies EmployeeRole}>HR Manager</MenuItem>
           <MenuItem value={'SUPER_ADMIN' satisfies EmployeeRole}>Super Admin</MenuItem>
         </Select>
         {Object.values(filters).some(Boolean) && (
-          <Button color="inherit" onClick={() => { setFilters({}); setPage(1) }} size="small">Clear filters</Button>
+          <Button color="inherit" onClick={() => { setFilters({}); setMobileSearch(''); setPage(1) }} size="small" sx={{ justifySelf: 'stretch', minHeight: 34 }}>Clear filters</Button>
         )}
-      </Stack>
+      </Box>
 
       <Paper elevation={0} sx={{ bgcolor: 'background.paper', border: '1px solid', borderColor: '#dce5df', borderRadius: 1, boxShadow: '0 5px 18px rgba(31, 64, 43, 0.045)', overflow: 'hidden' }}>
         {loading ? (
-          <TableContainer sx={{ overflowX: 'auto' }}>
-            <Table aria-label="Loading employees" sx={{ minWidth: 1380 }}>
+          <TableContainer sx={{ overflowX: 'auto', touchAction: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <Table aria-label="Loading employees" sx={{ minWidth: { xs: 330, sm: 1380 } }}>
               <TableBody>
                 {Array.from({ length: 8 }, (_, rowIndex) => (
                   <TableRow key={rowIndex}>
                     <TableCell padding="checkbox"><Skeleton height={22} width={22} /></TableCell>
-                    <TableCell sx={{ minWidth: 240 }}><Stack direction="row" spacing={1.25}><Skeleton height={38} variant="circular" width={38} /><Box><Skeleton width={130} /><Skeleton width={170} /></Box></Stack></TableCell>
-                    {Array.from({ length: 7 }, (_item, cellIndex) => <TableCell key={cellIndex}><Skeleton width={cellIndex % 2 ? 110 : 80} /></TableCell>)}
-                    <TableCell><Skeleton height={28} width={28} /></TableCell>
+                    <TableCell sx={{ minWidth: { xs: 190, sm: 240 } }}><Stack direction="row" spacing={1.25}><Skeleton height={38} variant="circular" width={38} /><Box><Skeleton width={110} /><Skeleton width={135} /></Box></Stack></TableCell>
+                    <TableCell sx={{ minWidth: { xs: 90, sm: 'auto' } }}><Skeleton width={75} /></TableCell>
+                    {Array.from({ length: 6 }, (_item, cellIndex) => <TableCell key={cellIndex} sx={{ display: { xs: 'none', sm: 'table-cell' } }}><Skeleton width={cellIndex % 2 ? 110 : 80} /></TableCell>)}
+                    <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}><Skeleton height={28} width={28} /></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -467,14 +485,16 @@ export const EmployeeListPage = () => {
                 scrollbarColor: '#c5d0c9 transparent',
                 scrollbarGutter: 'stable',
                 scrollbarWidth: 'thin',
-                touchAction: 'pan-x',
+                overscrollBehaviorX: 'contain',
+                touchAction: 'auto',
+                WebkitOverflowScrolling: 'touch',
                 '&::-webkit-scrollbar': { height: 7, width: 7 },
                 '&::-webkit-scrollbar-track': { bgcolor: 'transparent' },
                 '&::-webkit-scrollbar-thumb': { bgcolor: '#c5d0c9', border: '2px solid transparent', borderRadius: 8, backgroundClip: 'padding-box' },
                 '&::-webkit-scrollbar-thumb:hover': { bgcolor: '#9fb0a5' },
               }}
             >
-              <Table aria-label="Employee list" sx={{ minWidth: 1460, tableLayout: 'fixed' }}>
+              <Table aria-label="Employee list" sx={{ minWidth: { xs: 330, sm: 1460 }, tableLayout: { xs: 'auto', sm: 'fixed' } }}>
                 <TableHead>
                   <TableRow>
                     <TableCell padding="checkbox" sx={{ bgcolor: '#d8e5dc', borderBottom: '1px solid #bdcec2' }}>
@@ -502,6 +522,7 @@ export const EmployeeListPage = () => {
                           letterSpacing: '0.045em',
                           py: 1.2,
                           textTransform: 'uppercase',
+                          ...(!['Employee', 'Employee ID'].includes(heading) && { display: { xs: 'none', sm: 'table-cell' } }),
                         }}
                       >
                         {sortBy ? (
@@ -515,7 +536,7 @@ export const EmployeeListPage = () => {
                         ) : heading}
                       </TableCell>
                     ))}
-                    <TableCell align="center" sx={{ bgcolor: '#d8e5dc', borderBottom: '1px solid #bdcec2', color: '#35493c', fontSize: '0.72rem', fontWeight: 780, textTransform: 'uppercase' }}>Actions</TableCell>
+                    <TableCell align="center" sx={{ bgcolor: '#d8e5dc', borderBottom: '1px solid #bdcec2', color: '#35493c', display: { xs: 'none', sm: 'table-cell' }, fontSize: '0.72rem', fontWeight: 780, textTransform: 'uppercase' }}>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -523,8 +544,12 @@ export const EmployeeListPage = () => {
                     <TableRow
                       hover
                       key={employee.id}
+                      onClick={() => {
+                        if (window.matchMedia('(max-width: 599.95px)').matches) navigate(`/employees/${employee.id}`)
+                      }}
                       sx={{
                         bgcolor: employeeIndex % 2 === 0 ? 'background.paper' : '#fbfcfb',
+                        cursor: { xs: 'pointer', sm: 'default' },
                         transition: 'background-color 150ms ease, box-shadow 150ms ease',
                         '& td': { borderBottom: '1px solid #edf1ee' },
                         '&:hover': { bgcolor: '#f1f7f3', boxShadow: 'inset 3px 0 0 #7fa78c' },
@@ -532,9 +557,9 @@ export const EmployeeListPage = () => {
                       }}
                     >
                       <TableCell padding="checkbox">
-                        <Checkbox checked={selectedIds.has(employee.id)} onChange={() => toggleEmployeeSelection(employee.id)} size="small" />
+                        <Checkbox checked={selectedIds.has(employee.id)} onClick={(event) => event.stopPropagation()} onChange={() => toggleEmployeeSelection(employee.id)} size="small" />
                       </TableCell>
-                      <TableCell sx={{ minWidth: 240, py: 1.35 }}>
+                      <TableCell sx={{ minWidth: { xs: 190, sm: 240 }, py: { xs: 1.05, sm: 1.35 } }}>
                         <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center' }}>
                           <Avatar
                             alt={employee.name}
@@ -556,13 +581,13 @@ export const EmployeeListPage = () => {
                           </Box>
                         </Stack>
                       </TableCell>
-                      <TableCell><Typography sx={{ fontFamily: 'monospace', fontSize: '0.78rem' }}>{employee.employeeId}</Typography></TableCell>
-                      <TableCell sx={{ minWidth: 190 }}>{employee.department.name}</TableCell>
-                      <TableCell sx={{ minWidth: 190 }}>{employee.designation}</TableCell>
-                      <TableCell>
+                      <TableCell sx={{ minWidth: { xs: 90, sm: 'auto' } }}><Typography noWrap sx={{ fontFamily: 'monospace', fontSize: { xs: '0.7rem', sm: '0.78rem' } }}>{employee.employeeId}</Typography></TableCell>
+                      <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' }, minWidth: 190 }}>{employee.department.name}</TableCell>
+                      <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' }, minWidth: 190 }}>{employee.designation}</TableCell>
+                      <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
                         <Chip label={roleLabel(employee.role)} size="small" sx={{ bgcolor: employee.role === 'SUPER_ADMIN' ? '#f1ecff' : employee.role === 'HR_MANAGER' ? '#eaf3ff' : '#f0f2f1', color: employee.role === 'SUPER_ADMIN' ? '#6841a5' : employee.role === 'HR_MANAGER' ? '#356c9d' : '#5f6964', fontSize: '0.68rem', fontWeight: 700 }} />
                       </TableCell>
-                      <TableCell>
+                      <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
                         <Chip
                           icon={<Box sx={{ bgcolor: employee.status === 'ACTIVE' ? '#25a55f' : '#d44b4b', borderRadius: '50%', height: 7, width: 7 }} />}
                           label={employee.status === 'ACTIVE' ? 'Active' : 'Inactive'}
@@ -570,8 +595,8 @@ export const EmployeeListPage = () => {
                           sx={{ bgcolor: employee.status === 'ACTIVE' ? '#e7f7ed' : '#fdecec', color: employee.status === 'ACTIVE' ? '#237342' : '#ad3434', fontSize: '0.7rem', fontWeight: 700, '& .MuiChip-icon': { ml: 1 } }}
                         />
                       </TableCell>
-                      <TableCell sx={{ minWidth: 130 }}>{formatDate(employee.joiningDate)}</TableCell>
-                      <TableCell sx={{ minWidth: 180 }}>
+                      <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' }, minWidth: 130 }}>{formatDate(employee.joiningDate)}</TableCell>
+                      <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' }, minWidth: 180 }}>
                         {employee.reportingManager ? (
                           <Box>
                             <Typography sx={{ fontSize: '0.8rem', fontWeight: 650 }}>{employee.reportingManager.name}</Typography>
@@ -579,7 +604,7 @@ export const EmployeeListPage = () => {
                           </Box>
                         ) : <Typography color="text.secondary" variant="body2">—</Typography>}
                       </TableCell>
-                      <TableCell align="center">
+                      <TableCell align="center" sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
                         <IconButton aria-label={`Actions for ${employee.name}`} onClick={(event) => openActions(event.currentTarget, employee)} size="small">
                           <SvgIcon><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2Zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2Zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2Z" /></SvgIcon>
                         </IconButton>

@@ -75,6 +75,7 @@ export const AppSidebar = <Role extends string>({
     <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center', px: 0.75 }}>
       <Badge
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+        aria-label="Active account"
         overlap="circular"
         sx={{ '& .MuiBadge-badge': { bgcolor: '#22c55e', border: '2px solid white', borderRadius: '50%', height: 11, minWidth: 11 } }}
         variant="dot"
@@ -87,8 +88,7 @@ export const AppSidebar = <Role extends string>({
         <Typography noWrap sx={{ fontSize: '0.78rem', fontWeight: 600, letterSpacing: '-0.01em' }}>
           {user.name}
         </Typography>
-        <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center', mt: 0.35 }}>
-          <Typography sx={{ color: '#159447', fontSize: '0.68rem', fontWeight: 700 }}>Active</Typography>
+        <Stack direction="row" sx={{ alignItems: 'center', mt: 0.35 }}>
           <Chip
             label={user.role.replaceAll('_', ' ')}
             size="small"

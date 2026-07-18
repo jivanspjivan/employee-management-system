@@ -63,23 +63,23 @@ export const AppHeader = <Role extends string>({ title, user, onNavigate, onOpen
     position="sticky"
     sx={{ borderBottom: 1, borderColor: 'divider', bgcolor: 'rgba(255,255,255,0.92)' }}
   >
-    <Toolbar sx={{ gap: { xs: 1, md: 2 }, minHeight: { xs: 64, md: 72 } }}>
+    <Toolbar sx={{ alignItems: 'center', gap: { xs: .7, sm: 1, md: 2 }, minHeight: { xs: 68, md: 72 }, pl: { xs: '20px !important', sm: '24px !important' }, pr: { xs: '20px !important', sm: '24px !important' } }}>
       <IconButton
         aria-label="Open navigation"
-        edge="start"
         onClick={onOpenMenu}
-        sx={{ display: { md: 'none' }, mr: 1 }}
+        sx={{ display: { md: 'none' }, flexShrink: 0, height: 38, p: .75, width: 38 }}
       >
         <Box aria-hidden component="span" sx={{ fontSize: 24, lineHeight: 1 }}>
           ☰
         </Box>
       </IconButton>
       <Box sx={{ alignItems: 'center', display: { xs: 'flex', md: 'none' }, gap: 1 }}>
-        <Box sx={{ background: 'linear-gradient(145deg, #17211b, #33483b)', borderRadius: 1.5, color: '#b7f0c5', display: 'grid', fontSize: '0.65rem', fontWeight: 850, height: 32, letterSpacing: '-0.08em', placeItems: 'center', width: 32 }}>PS</Box>
+        <Box sx={{ background: 'linear-gradient(145deg, #17211b, #33483b)', borderRadius: 1.5, color: '#b7f0c5', display: 'grid', fontSize: '0.61rem', fontWeight: 850, height: 30, letterSpacing: '-0.08em', placeItems: 'center', width: 30 }}>PS</Box>
       </Box>
       <Typography
         component="h1"
-        sx={{ fontSize: { xs: '1.1rem', md: '1.35rem' }, fontWeight: 750 }}
+        noWrap
+        sx={{ flex: { xs: 1, md: 'initial' }, fontSize: { xs: '1rem', md: '1.35rem' }, fontWeight: 750, minWidth: 0 }}
       >
         {title}
       </Typography>
@@ -116,8 +116,8 @@ export const AppHeader = <Role extends string>({ title, user, onNavigate, onOpen
       >
         Filter
       </Button>
-      <Stack direction="row" spacing={1} sx={{ alignItems: 'center', ml: 'auto' }}>
-        {notificationPath && <IconButton aria-label="Open notifications" onClick={() => onNavigate(notificationPath)}>
+      <Stack direction="row" spacing={{ xs: .55, sm: 1 }} sx={{ alignItems: 'center', ml: { xs: 0, md: 'auto' } }}>
+        {notificationPath && <IconButton aria-label="Open notifications" onClick={() => onNavigate(notificationPath)} sx={{ height: { xs: 38, sm: 40 }, p: { xs: .8, sm: 1 }, width: { xs: 38, sm: 40 } }}>
           <Badge badgeContent={notificationCount} color="error" max={99}>
             <SvgIcon><path d="M12 22a2.01 2.01 0 0 0 2-2h-4a2 2 0 0 0 2 2Zm6-6v-5c0-3.08-1.64-5.64-4.5-6.32V4a1.5 1.5 0 0 0-3 0v.68C7.63 5.36 6 7.91 6 11v5l-2 2v1h16v-1l-2-2Z" /></SvgIcon>
           </Badge>
@@ -132,7 +132,7 @@ export const AppHeader = <Role extends string>({ title, user, onNavigate, onOpen
             </Typography>
           )}
         </Box>
-        <Avatar alt={user.name} src={user.avatarUrl ?? undefined} sx={{ height: 36, width: 36 }} />
+        <Avatar alt={user.name} src={user.avatarUrl ?? undefined} sx={{ height: { xs: 32, sm: 36 }, width: { xs: 32, sm: 36 } }} />
       </Stack>
     </Toolbar>
   </AppBar>

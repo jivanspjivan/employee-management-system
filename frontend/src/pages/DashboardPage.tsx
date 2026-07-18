@@ -53,11 +53,11 @@ function StatCard({ label, value, accent, tint, icon, loading, trend, trendLabel
       sx={{
         border: '1px solid',
         borderColor: '#e8eeea',
-        borderRadius: 4,
+        borderRadius: { xs: 2.5, sm: 4 },
         bgcolor: tint,
         boxShadow: '0 5px 16px rgba(31, 64, 43, 0.055)',
         overflow: 'hidden',
-        p: 2,
+        p: { xs: 1.25, sm: 2 },
         position: 'relative',
         transition: 'transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease',
         '&:hover': {
@@ -77,11 +77,11 @@ function StatCard({ label, value, accent, tint, icon, loading, trend, trendLabel
           sx={{
             alignItems: 'center',
             bgcolor: 'background.paper',
-            borderRadius: 2.5,
+            borderRadius: { xs: 1.75, sm: 2.5 },
             display: 'flex',
-            height: 36,
+            height: { xs: 32, sm: 36 },
             justifyContent: 'center',
-            width: 36,
+            width: { xs: 32, sm: 36 },
             color: accent,
             boxShadow: '0 3px 10px rgba(22, 58, 40, 0.07)',
           }}
@@ -92,19 +92,19 @@ function StatCard({ label, value, accent, tint, icon, loading, trend, trendLabel
           {label}
         </Typography>
       </Stack>
-      <Stack direction="row" sx={{ alignItems: 'flex-end', justifyContent: 'space-between', mt: 1.15 }}>
+      <Stack direction="row" sx={{ alignItems: 'flex-end', justifyContent: 'space-between', mt: { xs: .65, sm: 1.15 } }}>
         <Box>
           {loading ? (
             <Skeleton height={40} width={70} />
           ) : (
-            <Typography component="p" sx={{ color: '#17291d', fontSize: { xs: '2.2rem', lg: '2.5rem' }, fontWeight: 820, letterSpacing: '-0.055em', lineHeight: .95 }}>
+            <Typography component="p" sx={{ color: '#17291d', fontSize: { xs: '2.35rem', lg: '2.5rem' }, fontWeight: 820, letterSpacing: '-0.055em', lineHeight: .95 }}>
               {value.toLocaleString()}
             </Typography>
           )}
           {loading ? (
             <Skeleton height={16} sx={{ mt: 0.65 }} width={112} />
           ) : (
-            <Stack direction="row" spacing={0.5} sx={{ alignItems: 'baseline', mt: 0.65 }}>
+            <Stack direction="row" spacing={0.5} sx={{ alignItems: 'baseline', mt: { xs: .4, sm: .65 } }}>
               <Typography component="span" sx={{ color: trendColor, fontSize: '0.7rem', fontWeight: 750 }}>
                 {trendSymbol} {trend}
               </Typography>
@@ -118,11 +118,11 @@ function StatCard({ label, value, accent, tint, icon, loading, trend, trendLabel
           <Skeleton height={64} sx={{ borderRadius: 2 }} variant="rounded" width={152} />
         ) : (
           <Box>
-            <Typography color="text.secondary" sx={{ fontSize: '0.58rem', fontWeight: 650, letterSpacing: '0.04em', mb: 0.25, textAlign: 'right', textTransform: 'uppercase' }}>
-              Monthly trend
+            <Typography color="text.secondary" sx={{ fontSize: '0.62rem', fontWeight: 650, mb: 0.25, textAlign: 'right' }}>
+              Monthly Trend
             </Typography>
-            <Box sx={{ bgcolor: trendBackground, borderRadius: 2, display: 'flex', px: 0.6, py: 0.35 }}>
-              <Box component="svg" aria-hidden viewBox="0 0 140 48" sx={{ height: 54, overflow: 'visible', width: 152 }}>
+            <Box sx={{ bgcolor: trendBackground, borderRadius: { xs: 1.5, sm: 2 }, display: 'flex', px: 0.6, py: 0.35 }}>
+              <Box component="svg" aria-hidden viewBox="0 0 140 48" sx={{ height: { xs: 36, sm: 54 }, overflow: 'visible', width: { xs: 112, sm: 152 } }}>
                 <line stroke={trendColor} strokeOpacity="0.14" strokeWidth="1" x1="0" x2="140" y1="42" y2="42" />
                 <polyline fill="none" points={sparkline} stroke={trendColor} strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.6" />
               </Box>
@@ -187,17 +187,17 @@ export function DashboardPage({
   const greeting = currentHour < 12 ? 'Good morning' : currentHour < 17 ? 'Good afternoon' : 'Good evening';
 
   return (
-    <Box component="main" sx={{ p: { xs: 2, sm: 3, lg: 4 } }}>
+    <Box component="main" sx={{ p: { xs: .5, sm: 1, lg: 1 } }}>
       <Stack
         direction={{ xs: 'column', md: 'row' }}
         spacing={2}
-        sx={{ alignItems: { md: 'center' }, justifyContent: 'space-between', mb: 3 }}
+        sx={{ alignItems: { md: 'center' }, justifyContent: 'space-between', mb: { xs: 2.25, sm: 3 } }}
       >
         <Box>
           <Typography color="primary.main" sx={{ fontSize: '0.78rem', fontWeight: 750, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
             {today}
           </Typography>
-          <Typography component="h1" sx={{ fontWeight: 750, letterSpacing: '-0.035em', mt: 0.5 }} variant="h4">
+          <Typography component="h1" sx={{ fontSize: { xs: '1.6rem', sm: '2.125rem' }, fontWeight: 750, letterSpacing: '-0.03em', lineHeight: { xs: 1.2, sm: 1.235 }, mt: 0.5 }}>
             {greeting} 👋{welcomeName ? `, ${welcomeName.split(' ')[0]}` : ''}
           </Typography>
           <Typography color="text.secondary" sx={{ mt: 0.5 }}>
@@ -216,7 +216,7 @@ export function DashboardPage({
         <Button
           onClick={onAddDepartment}
           startIcon={<AddDepartmentIcon />}
-          sx={{ bgcolor: '#edf6f0', borderColor: '#c8ddcf', color: '#346b47', flex: { xs: 1, sm: 'initial' }, '&:hover': { bgcolor: '#e2f0e7', borderColor: '#a9cbb4' } }}
+          sx={{ bgcolor: '#edf6f0', borderColor: '#c8ddcf', color: '#346b47', flex: { xs: 1, sm: 'initial' }, fontSize: { xs: '.76rem', sm: '.875rem' }, minHeight: { xs: 36, sm: 40 }, px: { xs: 1, sm: 2 }, py: { xs: .45, sm: .75 }, '& .MuiButton-startIcon svg': { fontSize: { xs: 18, sm: 20 } }, '&:hover': { bgcolor: '#e2f0e7', borderColor: '#a9cbb4' } }}
           variant="outlined"
         >
           Add department
@@ -224,7 +224,7 @@ export function DashboardPage({
         <Button
           onClick={onAddEmployee}
           startIcon={<AddEmployeeIcon />}
-          sx={{ boxShadow: '0 6px 14px rgba(47, 112, 69, 0.2)', flex: { xs: 1, sm: 'initial' }, fontSize: '0.92rem', minHeight: 44, px: 2.4 }}
+          sx={{ boxShadow: '0 6px 14px rgba(47, 112, 69, 0.2)', flex: { xs: 1, sm: 'initial' }, fontSize: { xs: '.76rem', sm: '.92rem' }, minHeight: { xs: 36, sm: 44 }, px: { xs: 1, sm: 2.4 }, py: { xs: .45, sm: .75 }, '& .MuiButton-startIcon svg': { fontSize: { xs: 18, sm: 20 } } }}
           variant="contained"
         >
           Add employee
@@ -236,7 +236,7 @@ export function DashboardPage({
         aria-label={loading ? 'Loading dashboard statistics' : undefined}
         sx={{
           display: 'grid',
-          gap: 2,
+          gap: { xs: 1.25, sm: 2 },
           gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', xl: 'repeat(4, 1fr)' },
         }}
       >

@@ -69,27 +69,55 @@ export const PasswordResetRequestsPage = () => {
   }
 
   return (
-    <Stack spacing={2.5}>
-      <Box>
-        <Typography component="h1" sx={{ fontSize: { xs: 25, md: 29 }, fontWeight: 760 }}>Notifications</Typography>
-        <Typography color="text.secondary" sx={{ mt: .4 }}>Review new and completed administrative notifications.</Typography>
-      </Box>
+    <Stack spacing={{ xs: 1.5, sm: 2.5 }}>
+      <Stack direction="row" spacing={1.15} sx={{ alignItems: 'center' }}>
+        <Box sx={{ alignItems: 'center', bgcolor: '#e7f1ea', border: '1px solid #d2e3d7', borderRadius: 2, color: 'primary.main', display: 'flex', height: { xs: 38, sm: 44 }, justifyContent: 'center', width: { xs: 38, sm: 44 } }}><BellIcon /></Box>
+        <Box>
+          <Typography component="h1" sx={{ fontSize: { xs: '1.45rem', md: '1.8rem' }, fontWeight: 760, lineHeight: 1.15 }}>Notifications</Typography>
+          <Typography color="text.secondary" sx={{ fontSize: { xs: '.76rem', sm: '.875rem' }, mt: .25 }}>Review administrative activity.</Typography>
+        </Box>
+      </Stack>
 
-      <Alert severity="info">For password recovery notifications, generated temporary passwords are shown only once and must be shared privately.</Alert>
+      <Alert severity="info" sx={{ '& .MuiAlert-message': { fontSize: { xs: '.75rem', sm: '.875rem' }, py: { xs: .25, sm: .5 } } }}>For password recovery notifications, generated temporary passwords are shown only once and must be shared privately.</Alert>
       {error && <Alert action={<Button onClick={() => void load()}>Retry</Button>} severity="error">{error}</Alert>}
 
       <Paper elevation={0} sx={{ border: '1px solid #dce5df', borderRadius: 2, overflow: 'hidden' }}>
         {loading ? (
           <Box sx={{ display: 'grid', minHeight: 220, placeItems: 'center' }}><CircularProgress /></Box>
         ) : requests.length === 0 ? (
-          <Box sx={{ alignItems: 'center', background: 'linear-gradient(180deg,#f8fbf9,#fff)', display: 'flex', flexDirection: 'column', px: 2, py: 8, textAlign: 'center' }}>
-            <Box sx={{ alignItems: 'center', bgcolor: '#e7f1ea', border: '1px solid #d2e3d7', borderRadius: '50%', color: 'primary.main', display: 'flex', height: 68, justifyContent: 'center', mb: 2, width: 68 }}><BellIcon /></Box>
+          <Box sx={{ alignItems: 'center', background: 'linear-gradient(180deg,#f8fbf9,#fff)', display: 'flex', flexDirection: 'column', px: 2, py: { xs: 5, sm: 8 }, textAlign: 'center' }}>
+            <Box sx={{ alignItems: 'center', bgcolor: '#e7f1ea', border: '1px solid #d2e3d7', borderRadius: '50%', color: 'primary.main', display: 'flex', height: { xs: 56, sm: 68 }, justifyContent: 'center', mb: { xs: 1.4, sm: 2 }, width: { xs: 56, sm: 68 } }}><BellIcon /></Box>
             <Typography sx={{ fontSize: '1.05rem', fontWeight: 760 }}>You’re all caught up</Typography>
             <Typography color="text.secondary" sx={{ fontSize: '.84rem', lineHeight: 1.6, maxWidth: 390, mt: .6 }}>There are no administrative notifications right now. New activity will be shown here automatically.</Typography>
           </Box>
         ) : (
           <>
-            <TableContainer>
+            <Stack spacing={1.25} sx={{ display: { xs: 'flex', sm: 'none' }, p: 1.25 }}>
+              {visibleRequests.map((request) => (
+                <Paper elevation={0} key={request.id} sx={{ border: '1px solid #dbe5de', borderRadius: 2.25, boxShadow: '0 5px 14px rgba(30,65,42,.06)', overflow: 'hidden' }}>
+                  <Box sx={{ p: 1.5 }}>
+                    <Stack direction="row" spacing={1.1} sx={{ alignItems: 'flex-start' }}>
+                      <Box sx={{ alignItems: 'center', bgcolor: '#e8f1ff', borderRadius: 1.75, color: '#3970a8', display: 'flex', flexShrink: 0, height: 38, justifyContent: 'center', width: 38 }}><KeyIcon /></Box>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography sx={{ fontSize: '1rem', fontWeight: 760, lineHeight: 1.25 }}>Password recovery</Typography>
+                        <Typography color="text.secondary" sx={{ fontSize: '.76rem', lineHeight: 1.45, mt: .45 }}>Employee cannot access their account</Typography>
+                      </Box>
+                      <Chip color={request.resolvedAt ? 'success' : 'warning'} icon={<StatusIcon completed={Boolean(request.resolvedAt)} />} label={request.resolvedAt ? 'Completed' : 'Pending'} size="small" sx={{ flexShrink: 0, fontSize: '.65rem', fontWeight: 700 }} />
+                    </Stack>
+                    <Box sx={{ borderTop: '1px solid #e6ece8', mt: 1.35, pt: 1.2 }}>
+                      <Typography sx={{ fontSize: '.88rem', fontWeight: 720 }}>{request.employee.name}</Typography>
+                      <Typography color="text.secondary" sx={{ fontSize: '.74rem', lineHeight: 1.45, mt: .2, overflowWrap: 'anywhere' }}>{request.employee.email}</Typography>
+                      <Typography sx={{ color: '#637169', fontFamily: 'monospace', fontSize: '.68rem', mt: .45 }}>{request.employee.employeeId}</Typography>
+                    </Box>
+                    <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between', mt: 1.25 }}>
+                      <Box><Typography color="text.secondary" sx={{ fontSize: '.62rem', textTransform: 'uppercase' }}>Created</Typography><Typography sx={{ fontSize: '.72rem', fontWeight: 620, mt: .15 }}>{formatRequestedAt(request.requestedAt)}</Typography></Box>
+                      {request.resolvedAt ? <Stack direction="row" spacing={.45} sx={{ alignItems: 'center', color: 'success.main' }}><StatusIcon completed /><Typography sx={{ fontSize: '.7rem', fontWeight: 650 }}>Completed</Typography></Stack> : <Button disabled={Boolean(resolvingId)} onClick={() => void resolve(request)} size="small" variant="contained">{resolvingId === request.id ? 'Generating…' : 'Generate password'}</Button>}
+                    </Stack>
+                  </Box>
+                </Paper>
+              ))}
+            </Stack>
+            <TableContainer sx={{ display: { xs: 'none', sm: 'block' } }}>
             <Table aria-label="Administrative notifications" sx={{ minWidth: 1050 }}>
               <TableHead><TableRow sx={{ bgcolor: '#e5eee8' }}><TableCell>Notification</TableCell><TableCell>Employee</TableCell><TableCell>Employee ID</TableCell><TableCell>Status</TableCell><TableCell>Created</TableCell><TableCell align="right">Action</TableCell></TableRow></TableHead>
               <TableBody>{visibleRequests.map((request) => (

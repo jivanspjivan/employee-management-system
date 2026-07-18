@@ -1,141 +1,160 @@
-# Playstack Employee Management System
+<div align="center">
 
-A production-oriented full-stack Employee Management System built as a hiring assignment. It provides secure authentication, backend-enforced role-based access control, employee management, reporting hierarchy, dashboard analytics, global search, and CSV import/export workflows.
+# 👥 Employee Management System
 
-## Live demo
+### Secure workforce management, reporting hierarchy, and analytics in one place
 
-| Application | URL |
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Express](https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white)](https://expressjs.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Prisma-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Tests](https://img.shields.io/badge/Tests-59%20passing-2EA44F?logo=vitest&logoColor=white)](#testing)
+
+**A production-oriented full-stack application built to manage employees, access roles, departments, reporting relationships, and workforce insights.**
+
+[Live Demo](https://employee-management-system-frontend-f4dp.onrender.com/) · [Features](#-key-features) · [Tech Stack](#-technology-stack) · [RBAC](#-role-based-access-control) · [Setup](#-run-locally) · [API Docs](docs/api.md) · [Contact](#-author)
+
+</div>
+
+---
+
+## 🌐 Live deployment
+
+| Service | URL |
 | --- | --- |
-| Frontend | Add deployed frontend URL here |
-| Backend API | Add deployed API URL here |
-| API documentation | [docs/api.md](docs/api.md) |
+| Frontend application | [Open live application](https://employee-management-system-frontend-f4dp.onrender.com/) |
+| Backend API | [Open backend service](https://employee-management-system-1tqn.onrender.com/) |
+| API health check | [Check API status](https://employee-management-system-1tqn.onrender.com/api/health) |
 
-## Highlights
+> The services are hosted on Render. The first request may take a little longer if a free-tier service has been idle.
 
-- JWT authentication, password hashing, logout, protected routes, and automatic login redirect when a session expires
-- Role-based access for Super Admin, HR Manager, and Employee
-- Employee CRUD with validation, soft deletion, reporting-manager assignment, and circular-reporting protection
-- Search by name or email with debounced autocomplete, filters, sorting, and pagination
-- Dashboard KPIs and employee charts with Redis-backed statistics caching
-- Expandable organizational reporting tree with direct-report counts
-- Department directory and department-filtered employee lists
-- Background-style CSV import/export progress, downloadable template, and import report
-- Responsive React and Material UI interface
+## ✨ Why this project stands out
 
-## Technology stack
+This is more than a basic CRUD application. Security and business rules are enforced by the backend, reporting relationships are protected from circular references, deleted records are retained safely, and data-heavy screens support search, filters, sorting, pagination, caching, and CSV workflows.
 
-| Layer | Technology |
+| 🔐 Secure by design | 🏢 Organization aware | 📊 Decision ready |
+| --- | --- | --- |
+| JWT sessions, bcrypt hashing, protected routes, rate limiting, and backend RBAC | Reporting-manager assignment, direct reports, expandable hierarchy, and cycle prevention | Workforce KPIs, department/status charts, global search, filters, and sorting |
+
+## 🚀 Key features
+
+- **Authentication:** JWT login, logout with token invalidation, password hashing, protected routes, and automatic session-expiry handling
+- **Role-based access:** Distinct permissions for Super Admin, HR Manager, and Employee
+- **Employee management:** Create, view, edit, and soft-delete employee records with validation
+- **Organization hierarchy:** Assign managers, view direct reports, explore a nested reporting tree, and prevent circular reporting
+- **Dashboard analytics:** Total, active, and inactive employee counts, department totals, and workforce charts
+- **Powerful discovery:** Debounced name/email search, department/role/status filters, sorting, and pagination
+- **CSV workflows:** Import validation, progress tracking, downloadable template, export, and import reports
+- **Production safeguards:** Zod validation, Prisma error mapping, structured logging, Helmet, CORS, and rate limiting
+- **Responsive experience:** Material UI interface designed for desktop, tablet, and mobile screens
+
+## 🧰 Technology stack
+
+| Layer | Technologies |
 | --- | --- |
 | Frontend | React 19, TypeScript, Vite, Material UI |
 | Backend | Node.js, Express 5, TypeScript |
 | Database | PostgreSQL, Prisma ORM, Neon adapter |
-| Cache | Redis |
 | Authentication | JWT, bcrypt |
 | Validation | Zod |
+| Cache | Redis with graceful fallback |
 | Testing | Vitest, Supertest |
-| Logging and security | Winston, Helmet, CORS, rate limiting |
+| Security and logging | Helmet, CORS, rate limiting, Winston |
 
-## Screenshots
+## 🛡️ Role-based access control
 
-Add screenshots to `docs/screenshots/` using the filenames shown below. GitHub will display them automatically in this gallery.
-
-### Login
-
-![Playstack login page](docs/screenshots/login-page.png)
-
-### Dashboard
-
-![Dashboard overview](docs/screenshots/dashboard-page.png)
-
-### Global search
-
-![Global employee search results](docs/screenshots/global-search-results.png)
-
-### Employee list
-
-![Employee list with filters](docs/screenshots/employee-list-page.png)
-
-### Employee pagination
-
-![Employee list pagination](docs/screenshots/employee-pagination.png)
-
-### Create employee
-
-![Create employee form](docs/screenshots/create-employee-page.png)
-
-### Edit employee
-
-![Edit employee form](docs/screenshots/edit-employee-page.png)
-
-### Employee details
-
-![Employee details and direct reportees](docs/screenshots/view-employee-page.png)
-
-### Employee profile
-
-![Employee profile view](docs/screenshots/view-profile-page.png)
-
-### My profile
-
-![My profile page](docs/screenshots/my-profile-page.png)
-
-### Departments
-
-![Department directory](docs/screenshots/departments-page.png)
-
-### Organization hierarchy
-
-![Expandable organization reporting tree](docs/screenshots/organization-page.png)
-
-### Import employees
-
-![Employee CSV import workflow](docs/screenshots/import-employees-page.png)
-
-### Export employees
-
-![Employee CSV export workflow](docs/screenshots/export-employees-page.png)
-
-### Sign out confirmation
-
-![Sign out confirmation dialog](docs/screenshots/sign-out-dialog.png)
-
-## Role permissions
+Authorization is enforced on the server. Frontend route guards and conditional controls improve the experience, but they are not treated as the security boundary.
 
 | Capability | Super Admin | HR Manager | Employee |
 | --- | :---: | :---: | :---: |
-| Dashboard statistics | Yes | Yes | No |
-| View all employees | Yes | Yes | No |
-| Create employees | Yes | Yes | No |
-| Edit employees | Yes | Yes, except Super Admin | Own permitted fields only |
-| Delete employees | Yes | No | No |
-| Assign reporting managers | Yes | Yes | No |
-| Assign Super Admin role | Yes | No | No |
-| View organization tree | Yes | Yes | No |
-| Import and export CSV | Yes | Yes | No |
-| View and edit own profile | Yes | Yes | Yes |
+| View dashboard analytics | ✅ | ✅ | — |
+| View all employees | ✅ | ✅ | — |
+| Create employees | ✅ | ✅ | — |
+| Edit employees | ✅ | ✅ Except Super Admin | Own limited fields |
+| Delete employees | ✅ | — | — |
+| Assign reporting managers | ✅ | ✅ | — |
+| Assign the Super Admin role | ✅ | — | — |
+| View the organization tree | ✅ | ✅ | — |
+| Import and export CSV data | ✅ | ✅ | — |
+| View and edit own profile | ✅ | ✅ | ✅ |
 
-Permissions are enforced by the backend. Frontend visibility and route guards provide an additional user-experience layer but are not treated as the security boundary.
+## 🧠 Business rules and validation
 
-## Project structure
+- Employee IDs and email addresses must be unique.
+- Required fields, email, phone, salary, URLs, and dates are validated on both frontend and backend.
+- Employee IDs cannot be changed after creation.
+- Employees can update only their own name, phone number, and profile image.
+- HR Managers cannot create, edit, demote, or delete a Super Admin.
+- Administrators cannot make unsafe changes to their own role.
+- The last active Super Admin cannot be demoted, deactivated, or deleted.
+- An employee cannot report to themselves or create a circular reporting chain.
+- Soft-deleted employees are excluded from standard queries and their sessions are invalidated.
+
+## 🖼️ Application preview
+
+### Dashboard and employee directory
+
+| Dashboard overview | Employee management |
+| --- | --- |
+| ![Dashboard with workforce statistics](docs/screenshots/ems-dashboards.png) | ![Employee directory with search and filters](docs/screenshots/ems-employee-list.png) |
+
+| Workforce charts | Global employee search |
+| --- | --- |
+| ![Dashboard workforce charts](docs/screenshots/ems-dashboard-charts.png) | ![Global employee search by name and email](docs/screenshots/emp-global-search-with-name-email.png) |
+
+### Employee workflows
+
+| Create employee | Employee details |
+| --- | --- |
+| ![Create employee form](docs/screenshots/ems-add-emp-page.png) | ![Employee details and direct reportees](docs/screenshots/ems-emp-view.png) |
+
+| Edit employee | Change reporting manager |
+| --- | --- |
+| ![Edit employee form](docs/screenshots/ems-emp-edit.png) | ![Change an employee's reporting manager](docs/screenshots/ems-reporting-manager-change.png) |
+
+### Organization and departments
+
+| Reporting hierarchy | Department directory |
+| --- | --- |
+| ![Expandable organizational reporting tree](docs/screenshots/emp-organization-tree.png) | ![Department directory](docs/screenshots/emp-all-departent.png) |
+
+<details>
+<summary><strong>View more application screenshots</strong></summary>
+
+| Login | CSV import |
+| --- | --- |
+| ![Secure employee login](docs/screenshots/ems-login-page.png) | ![Download the CSV template and upload employee data](docs/screenshots/ems-emp-import-template-download-upload-csv.png) |
+
+| CSV export started | CSV export ready |
+| --- | --- |
+| ![Employee CSV export job in progress](docs/screenshots/ems-emp-export-started.png) | ![Completed employee CSV export ready to download](docs/screenshots/ems-emp-export-done-downloadready.png) |
+
+</details>
+
+## 🗂️ Project structure
 
 ```text
 employee-management-system/
-├── backend/                 # Express API, Prisma, migrations, seeds, and tests
-├── frontend/                # React application
+├── backend/
+│   ├── prisma/              # Schema, migrations, and seed scripts
+│   ├── src/modules/         # Feature-based API modules
+│   └── tests/               # Unit and API test suites
+├── frontend/
+│   └── src/                 # Pages, components, auth, and API clients
 ├── docs/
-│   ├── api.md               # API and Postman guide
-│   └── screenshots/         # README screenshot assets
+│   ├── api.md               # API usage and Postman guide
+│   └── screenshots/         # Product screenshots
 └── README.md
 ```
 
-## Local setup
+## ⚡ Run locally
 
-### Requirements
+### Prerequisites
 
 - Node.js 22 or later
 - npm
-- PostgreSQL database, or a Neon PostgreSQL project
-- Redis is recommended for caching; the API continues without cache when Redis is unavailable
+- PostgreSQL or a Neon PostgreSQL project
+- Redis is recommended; the API continues without caching when Redis is unavailable
 
 ### 1. Install dependencies
 
@@ -147,18 +166,16 @@ cd ../frontend
 npm install
 ```
 
-### 2. Configure environment variables
+### 2. Configure the environment
 
 ```bash
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env
 ```
 
-Set the PostgreSQL connection strings, a secure JWT secret, and the initial Super Admin values in `backend/.env`.
+Configure these backend values in `backend/.env`:
 
-Important backend variables:
-
-```text
+```env
 DATABASE_URL=
 DIRECT_URL=
 JWT_SECRET=
@@ -171,7 +188,7 @@ SEED_SUPER_ADMIN_NAME=
 SEED_SUPER_ADMIN_EMPLOYEE_ID=
 ```
 
-Never commit real credentials or `.env` files.
+> Never commit real secrets or local `.env` files.
 
 ### 3. Prepare the database
 
@@ -182,85 +199,56 @@ npm run db:deploy
 npm run db:seed
 ```
 
-To populate a local demonstration database with realistic employees and hierarchy:
+To add realistic demo employees and reporting relationships:
 
 ```bash
 npm run db:seed:demo
 ```
 
-### 4. Start the applications
-
-Run these commands in separate terminals:
+### 4. Start both applications
 
 ```bash
+# Terminal 1
 cd backend
 npm run dev
-```
 
-```bash
+# Terminal 2
 cd frontend
 npm run dev
 ```
 
-- Frontend: `http://localhost:5173`
-- Backend: `http://localhost:4000`
-- Health check: `http://localhost:4000/api/health`
+| Service | Local URL |
+| --- | --- |
+| Frontend | `http://localhost:5173` |
+| Backend | `http://localhost:4000` |
+| Health check | `http://localhost:4000/api/health` |
 
-## Main API endpoints
+## 🔌 API overview
 
-```text
-POST   /api/auth/login
-POST   /api/auth/logout
-GET    /api/auth/me
+| Module | Endpoints |
+| --- | --- |
+| Authentication | `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me` |
+| Dashboard | `GET /api/dashboard/stats`, `GET /api/dashboard/charts` |
+| Employees | `GET`, `POST`, `PUT`, and `DELETE /api/employees` |
+| Reporting | `GET /api/employees/:id/reportees`, `PATCH /api/employees/:id/manager` |
+| Organization | `GET /api/organization/tree` |
+| Departments | `GET /api/departments` |
+| CSV jobs | Import, export, status, and template endpoints under `/api/employees` |
 
-GET    /api/dashboard/stats
-GET    /api/dashboard/charts
+See the **[complete API documentation](docs/api.md)** for request bodies, responses, authentication instructions, filters, and Postman examples.
 
-GET    /api/employees
-GET    /api/employees/search
-GET    /api/employees/:id
-POST   /api/employees
-PUT    /api/employees/:id
-DELETE /api/employees/:id
-GET    /api/employees/:id/reportees
-PATCH  /api/employees/:id/manager
+## ✅ Testing
 
-POST   /api/employees/csv-jobs/import
-POST   /api/employees/csv-jobs/export
-GET    /api/employees/csv-jobs/:id
-GET    /api/employees/csv-template
-
-GET    /api/departments
-GET    /api/organization/tree
-```
-
-Request examples, response formats, authentication instructions, and Postman testing steps are available in [docs/api.md](docs/api.md).
-
-## Validation and business rules
-
-- Email addresses and employee IDs are unique.
-- Required fields, email, phone, salary, and dates are validated by the API.
-- Employee IDs cannot be edited.
-- Employee self-edit permissions are controlled by backend field configuration.
-- HR Managers cannot create, modify, demote, or delete a Super Admin.
-- Users cannot perform unsafe self-role changes.
-- The last active Super Admin cannot be demoted, disabled, or deleted.
-- Reporting relationships cannot point to the same employee or create a cycle.
-- Deleted employees use soft deletion and are excluded from normal queries.
-
-## Testing
-
-Run backend unit and API tests:
+The repository currently contains **59 passing backend unit and API tests**, covering authentication, RBAC, employee operations, dashboard data, departments, reporting hierarchy, request logging, and Prisma error handling.
 
 ```bash
 cd backend
 npm test
 ```
 
-Run database integration tests against a disposable, migrated PostgreSQL database:
+Run database integration tests with a disposable migrated PostgreSQL database:
 
 ```bash
-cd backend
 TEST_DATABASE_URL=<test-database-url> npm run test:integration
 ```
 
@@ -275,25 +263,33 @@ npm run lint
 npm run build
 ```
 
-## Git workflow
+## 🌿 Git workflow
 
-- `main` is the stable production and submission branch.
-- `develop` is the integration branch.
-- New work is created in `feature/<feature-name>` branches.
-- Tested feature branches are merged into `develop`.
-- Release-ready `develop` is merged into `main` so both remain synchronized.
+- `main` contains the stable submission-ready application.
+- `develop` is used as the integration branch.
+- Work is developed through focused `feature/<feature-name>` branches.
+- Tested features move through `develop` before being released to `main`.
 
-## Submission checklist
+## 👨‍💻 Author
 
-- [ ] Add deployed frontend and backend URLs
-- [ ] Add all screenshots under `docs/screenshots/`
-- [ ] Add demo video URL, if available
-- [ ] Verify API documentation and Postman workflow
-- [ ] Run backend tests and database integration tests
-- [ ] Run frontend lint and production build
-- [ ] Confirm `develop` and `main` are synchronized
-- [ ] Verify that no credentials or local environment files are committed
+### Jivan Paratpure
 
-## Author
+Full Stack Developer focused on building secure, scalable, and user-friendly web applications.
 
-Add your name, email, portfolio, and GitHub profile here.
+[![Email](https://img.shields.io/badge/Email-jivanparatpure2002%40gmail.com-EA4335?logo=gmail&logoColor=white)](mailto:jivanparatpure2002@gmail.com)
+[![GitHub](https://img.shields.io/badge/GitHub-jivanspjivan-181717?logo=github&logoColor=white)](https://github.com/jivanspjivan)
+[![Phone](https://img.shields.io/badge/Phone-%2B91%209325796736-25D366?logo=whatsapp&logoColor=white)](tel:+919325796736)
+
+- **Email:** [jivanparatpure2002@gmail.com](mailto:jivanparatpure2002@gmail.com)
+- **Phone:** [+91 93257 96736](tel:+919325796736)
+- **GitHub:** [github.com/jivanspjivan](https://github.com/jivanspjivan)
+
+---
+
+<div align="center">
+
+Built with care by **Jivan Paratpure**
+
+If you find this project useful, consider giving the repository a ⭐
+
+</div>
